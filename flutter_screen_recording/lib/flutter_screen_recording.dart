@@ -1,24 +1,32 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter_foreground_task/flutter_foreground_task.dart';
-import 'package:flutter_screen_recording_platform_interface/flutter_screen_recording_platform_interface.dart';
-//import 'file:D:/Workspace/flutter_screen_recording/flutter_screen_recording_platform_interface/lib/flutter_screen_recording_platform_interface.dart';
+// import 'package:flutter_screen_recording_platform_interface/flutter_screen_recording_platform_interface.dart';
+import 'flutter_screen_recording_platform_interface/flutter_screen_recording_platform_interface.dart';
 import 'dart:async';
 import 'dart:io';
 
+
 class FlutterScreenRecording {
   static Future<bool> startRecordScreen(String name, {String? titleNotification, String? messageNotification}) async{
-    if(titleNotification == null ){
-      titleNotification = "";
-    }
-    if(messageNotification == null ){
-      messageNotification = "";
-    }
-
+    titleNotification ??= "";
+    messageNotification ??= "";
     await _maybeStartFGS(titleNotification, messageNotification);
     final bool start = await FlutterScreenRecordingPlatform.instance.startRecordScreen(name);
-
     return start;
   }
+  
+  static Future<bool> startCaptureScreen({String? titleNotification, String? messageNotification}) async{
+    titleNotification ??= "";
+    messageNotification ??= "";
+    await _maybeStartFGS(titleNotification, messageNotification);
+    final bool start = await FlutterScreenRecordingPlatform.instance.startCaptureScreen();
+    return start;
+  }
+
+  static Future<Uint8List?> acquireLatestImage() async{
+    return await FlutterScreenRecordingPlatform.instance.acquireLatestImage();
+  }
+
 
   static Future<bool> startRecordScreenAndAudio(String name, {String? titleNotification, String? messageNotification}) async {
     //await _maybeStartFGS(titleNotification, messageNotification);
@@ -34,7 +42,7 @@ class FlutterScreenRecording {
     return path;
   }
 
-  static  _maybeStartFGS(String titleNotification, String messageNotification) async {
+  static  _maybeStartFGS(String titleNotification, String? messageNotification) async {
     if (!kIsWeb && Platform.isAndroid) {
 
       FlutterForegroundTask.init(
@@ -63,8 +71,6 @@ class FlutterScreenRecording {
           autoRunOnBoot: true,
           allowWifiLock: true,
         ),
-          //iosNotificationOptions:true,
-        //intDevLog: true,
       );
     }
   }
