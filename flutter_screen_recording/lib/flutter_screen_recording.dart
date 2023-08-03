@@ -23,8 +23,8 @@ class FlutterScreenRecording {
     return start;
   }
 
-  static Future<Uint8List?> acquireLatestImage() async{
-    return await FlutterScreenRecordingPlatform.instance.acquireLatestImage();
+  static Future<Uint8List?> acquireNextImage() async{
+    return await FlutterScreenRecordingPlatform.instance.acquireNextImage();
   }
 
 

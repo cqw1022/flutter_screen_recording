@@ -21,8 +21,8 @@ class MethodChannelFlutterScreenRecording
     return start;
   }
 
-  Future<Uint8List?> acquireLatestImage() async{
-    return await _channel.invokeMethod('acquireLatestImage', {});
+  Future<Uint8List?> acquireNextImage() async{
+    return await _channel.invokeMethod('acquireNextImage', {});
   }
 
   Future<bool> startRecordScreenAndAudio(String name) async {

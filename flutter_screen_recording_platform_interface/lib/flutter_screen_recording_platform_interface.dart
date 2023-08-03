@@ -32,7 +32,7 @@ abstract class FlutterScreenRecordingPlatform extends PlatformInterface {
     throw UnimplementedError();
   }
 
-  Future<Uint8List?> acquireLatestImage() {
+  Future<Uint8List?> acquireNextImage() {
     throw UnimplementedError();
   }
   

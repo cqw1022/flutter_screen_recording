@@ -168,18 +168,18 @@ class FlutterScreenRecordingPlugin(
                 result.success(false)
             }
 
-        } else if (call.method == "acquireLatestImage") {
+        } else if (call.method == "acquireNextImage") {
                 if(readyImageCount<=0) {
-                    result.success([3,]);
+                    result.success(null);
                     return;
                 }
                 if(mImageReader==null) {
-                    result.success([1,]);
+                    result.success(null);
                     return;
                 }
                 var image:Image? = mImageReader?.acquireNextImage();
                 if(image==null) {
-                    result.success([2,]);
+                    result.success(null);
                     return;
                 }
                 readyImageCount = readyImageCount - 1;
@@ -200,8 +200,10 @@ class FlutterScreenRecordingPlugin(
                 var stream:ByteArrayOutputStream = ByteArrayOutputStream();
                 bitmap.compress(Bitmap.CompressFormat.PNG, 100, stream);
                 var imageInByte = stream.toByteArray();
-                result.success([0,imageInByte, readyImageCount]);
+                result.success(imageInByte);
                 image.close();
+        } else if (call.method == "getReadyImageCount") {
+                result.success(readyImageCount);
         } else if (call.method == "stopRecordScreen") {
             try {
                 ForegroundService.stopService(registrar.context())
