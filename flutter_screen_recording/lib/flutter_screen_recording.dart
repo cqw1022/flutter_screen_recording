@@ -42,6 +42,20 @@ class FlutterScreenRecording {
     return path;
   }
 
+  
+  static Future<bool> get stopCaptureScreen async {
+    final bool ret = await FlutterScreenRecordingPlatform.instance.stopCaptureScreen;
+    if (!kIsWeb && Platform.isAndroid) {
+      FlutterForegroundTask.stopService();
+    }
+    return ret;
+  }
+
+  static Future<bool> get isScreenOn async {
+    final bool ret = await FlutterScreenRecordingPlatform.instance.isScreenOn;
+    return ret;
+  }
+
   static  _maybeStartFGS(String titleNotification, String? messageNotification) async {
     if (!kIsWeb && Platform.isAndroid) {
 

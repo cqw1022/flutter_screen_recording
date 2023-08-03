@@ -37,4 +37,10 @@ class MethodChannelFlutterScreenRecording
     final String path = await _channel.invokeMethod('stopRecordScreen');
     return path;
   }
+  Future<bool> get stopCaptureScreen async {
+    return await _channel.invokeMethod('stopCaptureScreen');
+  }
+  Future<bool> get isScreenOn async {
+    return await _channel.invokeMethod('isScreenOn');
+  }
 }
