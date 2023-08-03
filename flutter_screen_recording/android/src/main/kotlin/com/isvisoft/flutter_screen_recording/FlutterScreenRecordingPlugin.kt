@@ -215,8 +215,10 @@ class FlutterScreenRecordingPlugin(
                 if (mImageReader != null) {
                     stopCaptureScreen()
                     result.success(true)
+                    return
                 } else {
                     result.success(true)
+                    return
                 }
             } catch (e: Exception) {
                 result.success(false)
@@ -226,9 +228,11 @@ class FlutterScreenRecordingPlugin(
             try {
                 if(mMediaProjection==null || mVirtualDisplay==null) {
                     result.success(false)
+                    return
                 }
                 if(mMediaRecorder!=null || mImageReader!=null) {
                     result.success(true)
+                    return
                 }
                 result.success(false)
             } catch (e: Exception) {
