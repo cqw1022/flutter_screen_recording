@@ -187,7 +187,7 @@ class FlutterScreenRecordingPlugin(
                 // var height: Int = image.getHeight();
                 // println("acquireNextImage @@@ ${width} ${height}");
 
-                // var planes = image.getPlanes();
+                var planes = image.getPlanes();
                 var buffer:ByteBuffer = planes[0].getBuffer();
                 // var pixelStride: Int = planes[0].getPixelStride();
                 // var rowStride: Int = planes[0].getRowStride();
