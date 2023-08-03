@@ -169,30 +169,34 @@ class FlutterScreenRecordingPlugin(
             }
 
         } else if (call.method == "acquireLatestImage") {
-               var image:Image? = mImageReader?.acquireLatestImage();
-               if(image==null) {
-                   result.success(null);
-                   return;
-               }
-               var width: Int = image.getWidth();
-               var height: Int = image.getHeight();
+                if(mImageReader==null) {
+                    result.success(null);
+                    return;
+                }
+                var image:Image? = mImageReader?.acquireLatestImage();
+                if(image==null) {
+                    result.success(null);
+                    return;
+                }
+                var width: Int = image.getWidth();
+                var height: Int = image.getHeight();
 
-               var planes = image.getPlanes();
-               var buffer:ByteBuffer = planes[0].getBuffer();
-               var pixelStride: Int = planes[0].getPixelStride();
-               var rowStride: Int = planes[0].getRowStride();
-               var rowPadding: Int = rowStride - pixelStride * width;
+                var planes = image.getPlanes();
+                var buffer:ByteBuffer = planes[0].getBuffer();
+                var pixelStride: Int = planes[0].getPixelStride();
+                var rowStride: Int = planes[0].getRowStride();
+                var rowPadding: Int = rowStride - pixelStride * width;
 
-               var bitmap:Bitmap = Bitmap.createBitmap(width+rowPadding/pixelStride, height, Bitmap.Config.ARGB_8888);
-               bitmap.copyPixelsFromBuffer(buffer);
-               // String filePath = Environment.getExternalStorageDirectory().getPath() + "/hello.jpg";
-               //bitmap保存为图片
-               // saveBitmap(bitmap, filePath);
-               var stream:ByteArrayOutputStream = ByteArrayOutputStream();
-               bitmap.compress(Bitmap.CompressFormat.PNG, 100, stream);
-               var imageInByte = stream.toByteArray();
-               result.success(imageInByte);
-               image.close();
+                var bitmap:Bitmap = Bitmap.createBitmap(width+rowPadding/pixelStride, height, Bitmap.Config.ARGB_8888);
+                bitmap.copyPixelsFromBuffer(buffer);
+                // String filePath = Environment.getExternalStorageDirectory().getPath() + "/hello.jpg";
+                //bitmap保存为图片
+                // saveBitmap(bitmap, filePath);
+                var stream:ByteArrayOutputStream = ByteArrayOutputStream();
+                bitmap.compress(Bitmap.CompressFormat.PNG, 100, stream);
+                var imageInByte = stream.toByteArray();
+                result.success(imageInByte);
+                image.close();
         } else if (call.method == "stopRecordScreen") {
             try {
                 ForegroundService.stopService(registrar.context())
@@ -205,7 +209,33 @@ class FlutterScreenRecordingPlugin(
             } catch (e: Exception) {
                 result.success("")
             }
-        } else {
+        } else if (call.method == "stopCaptureScreen") {
+            try {
+                ForegroundService.stopService(registrar.context())
+                if (mImageReader != null) {
+                    stopCaptureScreen()
+                    result.success(true)
+                } else {
+                    result.success(true)
+                }
+            } catch (e: Exception) {
+                result.success(false)
+            }
+        }
+        else if (call.method == "isScreenOn") {
+            try {
+                if(mMediaProjection==null || mVirtualDisplay==null) {
+                    result.success(false)
+                }
+                if(mMediaRecorder!=null || mImageReader!=null) {
+                    result.success(true)
+                }
+                result.success(false)
+            } catch (e: Exception) {
+                result.success(false)
+            }
+        }
+        else {
             result.notImplemented()
         }
     }
@@ -320,6 +350,8 @@ class FlutterScreenRecordingPlugin(
             println("stopRecordScreen")
             mMediaRecorder?.stop()
             mMediaRecorder?.reset()
+            mMediaRecorder?.release()
+            mMediaRecorder = null;
             println("stopRecordScreen success")
 
         } catch (e: Exception) {
@@ -332,17 +364,46 @@ class FlutterScreenRecordingPlugin(
         }
     }
 
+    fun stopCaptureScreen() {
+        try {
+            println("stopCaptureScreen")
+            mImageReader?.close()
+            mImageReader = null
+            println("stopCaptureScreen success")
+
+        } catch (e: Exception) {
+            Log.d("--INIT-RECORDER", e.message +"")
+            println("stopCaptureScreen error")
+            println(e.message)
+
+        } finally {
+            stopScreenCaptureSharing()
+        }
+    }
+
     private fun createVirtualDisplay(surface: Surface?): VirtualDisplay? {
-    try {
-      return mMediaProjection?.createVirtualDisplay(
-        "MainActivity", mDisplayWidth, mDisplayHeight, mScreenDensity,
-        DisplayManager.VIRTUAL_DISPLAY_FLAG_AUTO_MIRROR, surface, null, null
-      )
-    } catch (e: Exception) {
-      println("createVirtualDisplay err")
-      println(e.message)
-      return null
-      }
+        try {
+            return mMediaProjection?.createVirtualDisplay(
+                "MainActivity", mDisplayWidth, mDisplayHeight, mScreenDensity,
+                DisplayManager.VIRTUAL_DISPLAY_FLAG_AUTO_MIRROR, surface, null, null
+            )
+        } catch (e: Exception) {
+            println("createVirtualDisplay err")
+            println(e.message)
+            return null
+        }
+    }
+
+    private fun stopScreenCaptureSharing() {
+        if (mVirtualDisplay != null) {
+            mVirtualDisplay?.release()
+            if (mMediaProjection != null) {
+                mMediaProjection?.unregisterCallback(mMediaProjectionForCaptureCallback)
+                mMediaProjection?.stop()
+                mMediaProjection = null
+            }
+            Log.d("TAG", "MediaProjection Stopped")
+        }
     }
 
     private fun stopScreenSharing() {
@@ -360,6 +421,8 @@ class FlutterScreenRecordingPlugin(
     inner class MediaProjectionCallback : MediaProjection.Callback() {
         override fun onStop() {
             mMediaRecorder?.reset()
+            mMediaRecorder?.release()
+            mMediaRecorder = null;
             mMediaProjection = null
             stopScreenSharing()
         }
@@ -368,9 +431,11 @@ class FlutterScreenRecordingPlugin(
     
     inner class MediaProjectionForCaptureCallback : MediaProjection.Callback() {
         override fun onStop() {
-            mMediaRecorder?.reset()
+            mImageReader?.close()
+            mImageReader = null
             mMediaProjection = null
-            stopScreenSharing()
+            stopScreenCaptureSharing()
         }
     }
+    
 }
