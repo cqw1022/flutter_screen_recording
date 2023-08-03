@@ -27,6 +27,9 @@ class FlutterScreenRecording {
     return await FlutterScreenRecordingPlatform.instance.acquireNextImage();
   }
 
+  Future<int> getReadyImageCount() async{
+    return await FlutterScreenRecordingPlatform.instance.getReadyImageCount();
+  }
 
   static Future<bool> startRecordScreenAndAudio(String name, {String? titleNotification, String? messageNotification}) async {
     //await _maybeStartFGS(titleNotification, messageNotification);
