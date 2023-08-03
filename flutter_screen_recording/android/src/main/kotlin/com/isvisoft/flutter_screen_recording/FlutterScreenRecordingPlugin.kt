@@ -46,7 +46,7 @@ class FlutterScreenRecordingPlugin(
     var mScreenDensity: Int = 0
     var mMediaRecorder: MediaRecorder? = null
     var mImageReader: ImageReader? = null
-    var isImageReaderReady: Boolean = false
+    var readyImageCount: Int = 0
     var mProjectionManager: MediaProjectionManager? = null
     var mMediaProjection: MediaProjection? = null
     var mMediaProjectionCallback: MediaProjectionCallback? = null
@@ -154,7 +154,7 @@ class FlutterScreenRecordingPlugin(
                 mScreenDensity = metrics.densityDpi
                 mImageReader = ImageReader.newInstance(metrics.widthPixels, metrics.heightPixels, PixelFormat.RGBA_8888, 3);
                 mImageReader?.setOnImageAvailableListener({ reader ->
-                    isImageReaderReady = true;
+                    readyImageCount = readyImageCount.inc();
                 }, null)
                 calculeResolution(metrics)
                 // videoName = call.argument<String?>("name")
@@ -169,15 +169,20 @@ class FlutterScreenRecordingPlugin(
             }
 
         } else if (call.method == "acquireLatestImage") {
+                if(readyImageCount<=0) {
+                    result.success([3,]);
+                    return;
+                }
                 if(mImageReader==null) {
-                    result.success(null);
+                    result.success([1,]);
                     return;
                 }
-                var image:Image? = mImageReader?.acquireLatestImage();
+                var image:Image? = mImageReader?.acquireNextImage();
                 if(image==null) {
-                    result.success(null);
+                    result.success([2,]);
                     return;
                 }
+                readyImageCount = readyImageCount - 1;
                 var width: Int = image.getWidth();
                 var height: Int = image.getHeight();
 
@@ -195,7 +200,7 @@ class FlutterScreenRecordingPlugin(
                 var stream:ByteArrayOutputStream = ByteArrayOutputStream();
                 bitmap.compress(Bitmap.CompressFormat.PNG, 100, stream);
                 var imageInByte = stream.toByteArray();
-                result.success(imageInByte);
+                result.success([0,imageInByte, readyImageCount]);
                 image.close();
         } else if (call.method == "stopRecordScreen") {
             try {
