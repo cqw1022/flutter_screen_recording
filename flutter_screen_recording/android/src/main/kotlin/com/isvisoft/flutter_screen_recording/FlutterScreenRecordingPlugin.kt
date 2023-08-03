@@ -23,6 +23,7 @@ import android.graphics.Bitmap;
 import android.media.Image;
 import android.media.ImageReader;
 import android.graphics.PixelFormat;
+import android.graphics.ImageFormat;
 
 import io.flutter.plugin.common.MethodCall
 import io.flutter.plugin.common.MethodChannel
@@ -152,7 +153,7 @@ class FlutterScreenRecordingPlugin(
                     defaultDisplay?.getMetrics(metrics)
                 }
                 mScreenDensity = metrics.densityDpi
-                mImageReader = ImageReader.newInstance(metrics.widthPixels, metrics.heightPixels, PixelFormat.RGB_565, 3);
+                mImageReader = ImageReader.newInstance(metrics.widthPixels, metrics.heightPixels, ImageFormat.YUV_420_888, 3);
                 mImageReader?.setOnImageAvailableListener({ reader ->
                     readyImageCount = readyImageCount.inc();
                 }, null)
