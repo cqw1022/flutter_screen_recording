@@ -190,6 +190,10 @@ class FlutterScreenRecordingPlugin(
 
                 var planes = image.getPlanes();
                 var buffer:ByteBuffer = planes[0].getBuffer();
+
+                val byteArray = ByteArray(byteBuffer.remaining())
+                byteBuffer.get(byteArray)
+
                 // var pixelStride: Int = planes[0].getPixelStride();
                 // var rowStride: Int = planes[0].getRowStride();
                 // var rowPadding: Int = rowStride - pixelStride * width;
@@ -220,7 +224,7 @@ class FlutterScreenRecordingPlugin(
                 // // // var stream:ByteArrayOutputStream = ByteArrayOutputStream();
                 // // // bitmap.compress(Bitmap.CompressFormat.PNG, 100, stream);
                 // // var imageInByte = stream.toByteArray();
-                result.success(buffer.array());
+                result.success(byteArray);
                 image.close();
         } else if (call.method == "getReadyImageCount") {
                 result.success(readyImageCount);
