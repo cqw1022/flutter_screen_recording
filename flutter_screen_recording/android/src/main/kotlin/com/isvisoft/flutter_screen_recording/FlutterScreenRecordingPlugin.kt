@@ -153,7 +153,7 @@ class FlutterScreenRecordingPlugin(
                     defaultDisplay?.getMetrics(metrics)
                 }
                 mScreenDensity = metrics.densityDpi
-                mImageReader = ImageReader.newInstance(metrics.widthPixels, metrics.heightPixels, ImageFormat.YUV_420_888, 3);
+                mImageReader = ImageReader.newInstance(metrics.widthPixels, metrics.heightPixels, PixelFormat.RGBA_8888, 3);
                 mImageReader?.setOnImageAvailableListener({ reader ->
                     readyImageCount = readyImageCount.inc();
                 }, null)
