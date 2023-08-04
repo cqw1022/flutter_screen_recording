@@ -188,27 +188,27 @@ class FlutterScreenRecordingPlugin(
                 var planes = image.getPlanes();
                 var buffer:ByteBuffer = planes[0].getBuffer();
 
-                // val byteArray = ByteArray(buffer.capacity())
-                // buffer.get(byteArray)
-                // result.success(byteArray);
+                val byteArray = ByteArray(buffer.capacity())
+                buffer.get(byteArray)
+                result.success(byteArray);
 
-                var width: Int = image.getWidth();
-                var height: Int = image.getHeight();
-                // println("acquireNextImage @@@ ${width} ${height}");
-                var pixelStride: Int = planes[0].getPixelStride();
-                var rowStride: Int = planes[0].getRowStride();
-                var rowPadding: Int = rowStride - pixelStride * width;
-                println("acquireNextImage @@@@@@@@@@ ${width+rowPadding/pixelStride} ${width}  ${height}");
+                // var width: Int = image.getWidth();
+                // var height: Int = image.getHeight();
+                // // println("acquireNextImage @@@ ${width} ${height}");
+                // var pixelStride: Int = planes[0].getPixelStride();
+                // var rowStride: Int = planes[0].getRowStride();
+                // var rowPadding: Int = rowStride - pixelStride * width;
+                // println("acquireNextImage @@@@@@@@@@ ${width+rowPadding/pixelStride} ${width}  ${height}");
 
-                var bitmap:Bitmap = Bitmap.createBitmap(width+rowPadding/pixelStride, height, Bitmap.Config.ARGB_8888);
-                bitmap.copyPixelsFromBuffer(buffer);
-                // String filePath = Environment.getExternalStorageDirectory().getPath() + "/hello.jpg";
-                //bitmap保存为图片
-                // saveBitmap(bitmap, filePath);
-                var stream:ByteArrayOutputStream = ByteArrayOutputStream();
-                bitmap.compress(Bitmap.CompressFormat.PNG, 100, stream);
-                var imageInByte = stream.toByteArray();
-                result.success(imageInByte);
+                // var bitmap:Bitmap = Bitmap.createBitmap(width+rowPadding/pixelStride, height, Bitmap.Config.ARGB_8888);
+                // bitmap.copyPixelsFromBuffer(buffer);
+                // // String filePath = Environment.getExternalStorageDirectory().getPath() + "/hello.jpg";
+                // //bitmap保存为图片
+                // // saveBitmap(bitmap, filePath);
+                // var stream:ByteArrayOutputStream = ByteArrayOutputStream();
+                // bitmap.compress(Bitmap.CompressFormat.PNG, 100, stream);
+                // var imageInByte = stream.toByteArray();
+                // result.success(imageInByte);
                 image.close();
         } else if (call.method == "getReadyImageCount") {
                 result.success(readyImageCount);
