@@ -191,8 +191,8 @@ class FlutterScreenRecordingPlugin(
                 var planes = image.getPlanes();
                 var buffer:ByteBuffer = planes[0].getBuffer();
 
-                val byteArray = ByteArray(byteBuffer.remaining())
-                byteBuffer.get(byteArray)
+                val byteArray = ByteArray(buffer.remaining())
+                buffer.get(byteArray)
 
                 // var pixelStride: Int = planes[0].getPixelStride();
                 // var rowStride: Int = planes[0].getRowStride();
