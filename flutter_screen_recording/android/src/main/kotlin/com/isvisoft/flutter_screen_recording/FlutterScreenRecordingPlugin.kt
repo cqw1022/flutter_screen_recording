@@ -184,9 +184,6 @@ class FlutterScreenRecordingPlugin(
                     return;
                 }
                 readyImageCount = readyImageCount - 1;
-                // var width: Int = image.getWidth();
-                // var height: Int = image.getHeight();
-                // println("acquireNextImage @@@ ${width} ${height}");
 
                 var planes = image.getPlanes();
                 var buffer:ByteBuffer = planes[0].getBuffer();
@@ -195,30 +192,14 @@ class FlutterScreenRecordingPlugin(
                 // buffer.get(byteArray)
                 // result.success(byteArray);
 
-                // var pixelStride: Int = planes[0].getPixelStride();
-                // var rowStride: Int = planes[0].getRowStride();
-                // var rowPadding: Int = rowStride - pixelStride * width;
-                // println("acquireNextImage @@@@@@@@@@ ${width+rowPadding/pixelStride} ${width}  ${height}");
+                var width: Int = image.getWidth();
+                var height: Int = image.getHeight();
+                // println("acquireNextImage @@@ ${width} ${height}");
+                var pixelStride: Int = planes[0].getPixelStride();
+                var rowStride: Int = planes[0].getRowStride();
+                var rowPadding: Int = rowStride - pixelStride * width;
+                println("acquireNextImage @@@@@@@@@@ ${width+rowPadding/pixelStride} ${width}  ${height}");
 
-
-                // // Create a byte array to hold the image data in BGR format
-                // val data = ByteArray(width * height * 3) // 3 bytes per pixel (BGR format)
-
-                // // Copy the image data into the byte array in BGR format
-                // var offset = 0
-                // for (i in 0 until height) {
-                //     for (j in 0 until width) {
-                //         val pixelOffset = i * rowStride + j * pixelStride
-                //         data[offset++] = planes[0].buffer[pixelOffset + 2] // Blue
-                //         data[offset++] = planes[0].buffer[pixelOffset + 1] // Green
-                //         data[offset++] = planes[0].buffer[pixelOffset]     // Red
-                //     }
-
-                //     // Advance buffer position to the next row
-                //     if (i < height - 1) {
-                //         planes[0].buffer.position(planes[0].buffer.position() + rowPadding)
-                //     }
-                // }
                 var bitmap:Bitmap = Bitmap.createBitmap(width+rowPadding/pixelStride, height, Bitmap.Config.ARGB_8888);
                 bitmap.copyPixelsFromBuffer(buffer);
                 // String filePath = Environment.getExternalStorageDirectory().getPath() + "/hello.jpg";
