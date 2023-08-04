@@ -191,8 +191,9 @@ class FlutterScreenRecordingPlugin(
                 var planes = image.getPlanes();
                 var buffer:ByteBuffer = planes[0].getBuffer();
 
-                val byteArray = ByteArray(buffer.capacity())
-                buffer.get(byteArray)
+                // val byteArray = ByteArray(buffer.capacity())
+                // buffer.get(byteArray)
+                // result.success(byteArray);
 
                 // var pixelStride: Int = planes[0].getPixelStride();
                 // var rowStride: Int = planes[0].getRowStride();
@@ -218,15 +219,15 @@ class FlutterScreenRecordingPlugin(
                 //         planes[0].buffer.position(planes[0].buffer.position() + rowPadding)
                 //     }
                 // }
-                // // var bitmap:Bitmap = Bitmap.createBitmap(width+rowPadding/pixelStride, height, Bitmap.Config.ARGB_8888);
-                // // bitmap.copyPixelsFromBuffer(buffer);
-                // // // String filePath = Environment.getExternalStorageDirectory().getPath() + "/hello.jpg";
-                // // //bitmap保存为图片
-                // // // saveBitmap(bitmap, filePath);
-                // // // var stream:ByteArrayOutputStream = ByteArrayOutputStream();
-                // // // bitmap.compress(Bitmap.CompressFormat.PNG, 100, stream);
-                // // var imageInByte = stream.toByteArray();
-                result.success(byteArray);
+                var bitmap:Bitmap = Bitmap.createBitmap(width+rowPadding/pixelStride, height, Bitmap.Config.ARGB_8888);
+                bitmap.copyPixelsFromBuffer(buffer);
+                // String filePath = Environment.getExternalStorageDirectory().getPath() + "/hello.jpg";
+                //bitmap保存为图片
+                // saveBitmap(bitmap, filePath);
+                var stream:ByteArrayOutputStream = ByteArrayOutputStream();
+                bitmap.compress(Bitmap.CompressFormat.PNG, 100, stream);
+                var imageInByte = stream.toByteArray();
+                result.success(imageInByte);
                 image.close();
         } else if (call.method == "getReadyImageCount") {
                 result.success(readyImageCount);
