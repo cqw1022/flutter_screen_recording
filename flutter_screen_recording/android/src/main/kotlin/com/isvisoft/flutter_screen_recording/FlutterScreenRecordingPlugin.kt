@@ -194,9 +194,11 @@ class FlutterScreenRecordingPlugin(
                 val byteArray = ByteArray(buffer.remaining())
                 buffer.get(byteArray)
 
-                // var pixelStride: Int = planes[0].getPixelStride();
-                // var rowStride: Int = planes[0].getRowStride();
-                // var rowPadding: Int = rowStride - pixelStride * width;
+                var pixelStride: Int = planes[0].getPixelStride();
+                var rowStride: Int = planes[0].getRowStride();
+                var rowPadding: Int = rowStride - pixelStride * width;
+                println("acquireNextImage @@@@@@@@@@ ${width+rowPadding/pixelStride} ${height}");
+
 
                 // // Create a byte array to hold the image data in BGR format
                 // val data = ByteArray(width * height * 3) // 3 bytes per pixel (BGR format)
