@@ -260,39 +260,65 @@ class FlutterScreenRecordingPlugin(
     }
 
     private fun calculeResolution(metrics: DisplayMetrics) {
-
-        mDisplayHeight = metrics.heightPixels
-        mDisplayWidth = metrics.widthPixels
-
-        var maxRes = 1280.0;
-        if (metrics.scaledDensity >= 3.0f) {
-            maxRes = 1920.0;
-        }
-        if (metrics.widthPixels > metrics.heightPixels) {
-            var rate = metrics.widthPixels / maxRes
-
-            if(rate > 1.5){
-                rate = 1.5
+        
+        
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.R) {
+            mDisplayHeight = metrics.heightPixels
+            mDisplayWidth = metrics.widthPixels
+        }else{
+            var maxRes = 1280.0;
+            if (metrics.scaledDensity >= 3.0f) {
+                maxRes = 1920.0;
             }
-            mDisplayWidth = maxRes.toInt()
-            mDisplayHeight = (metrics.heightPixels / rate).toInt()
-            println("Rate : $rate")
-        } else {
-            var rate = metrics.heightPixels / maxRes
-            if(rate > 1.5){
-                rate = 1.5
+            if (metrics.widthPixels > metrics.heightPixels) {
+                val rate = metrics.widthPixels / maxRes
+                mDisplayWidth = maxRes.toInt()
+                mDisplayHeight = (metrics.heightPixels / rate).toInt()
+            } else {
+                val rate = metrics.heightPixels / maxRes
+                mDisplayHeight = maxRes.toInt()
+                mDisplayWidth = (metrics.widthPixels / rate).toInt()
             }
-            mDisplayHeight = maxRes.toInt()
-            mDisplayWidth = (metrics.widthPixels / rate).toInt()
-            println("Rate : $rate")
         }
-
         println("Scaled Density")
         println(metrics.scaledDensity)
         println("Original Resolution ")
         println(metrics.widthPixels.toString() + " x " + metrics.heightPixels)
         println("Calcule Resolution ")
         println("$mDisplayWidth x $mDisplayHeight")
+
+        // mDisplayHeight = metrics.heightPixels
+        // mDisplayWidth = metrics.widthPixels
+
+        // var maxRes = 1280.0;
+        // if (metrics.scaledDensity >= 3.0f) {
+        //     maxRes = 1920.0;
+        // }
+        // if (metrics.widthPixels > metrics.heightPixels) {
+        //     var rate = metrics.widthPixels / maxRes
+
+        //     if(rate > 1.5){
+        //         rate = 1.5
+        //     }
+        //     mDisplayWidth = maxRes.toInt()
+        //     mDisplayHeight = (metrics.heightPixels / rate).toInt()
+        //     println("Rate : $rate")
+        // } else {
+        //     var rate = metrics.heightPixels / maxRes
+        //     if(rate > 1.5){
+        //         rate = 1.5
+        //     }
+        //     mDisplayHeight = maxRes.toInt()
+        //     mDisplayWidth = (metrics.widthPixels / rate).toInt()
+        //     println("Rate : $rate")
+        // }
+
+        // println("Scaled Density")
+        // println(metrics.scaledDensity)
+        // println("Original Resolution ")
+        // println(metrics.widthPixels.toString() + " x " + metrics.heightPixels)
+        // println("Calcule Resolution ")
+        // println("$mDisplayWidth x $mDisplayHeight")
     }
 
     
