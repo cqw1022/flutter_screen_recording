@@ -261,25 +261,27 @@ class FlutterScreenRecordingPlugin(
 
     private fun calculeResolution(metrics: DisplayMetrics) {
         
-        
-        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.R) {
             mDisplayHeight = metrics.heightPixels
             mDisplayWidth = metrics.widthPixels
-        }else{
-            var maxRes = 1280.0;
-            if (metrics.scaledDensity >= 3.0f) {
-                maxRes = 1920.0;
-            }
-            if (metrics.widthPixels > metrics.heightPixels) {
-                val rate = metrics.widthPixels / maxRes
-                mDisplayWidth = maxRes.toInt()
-                mDisplayHeight = (metrics.heightPixels / rate).toInt()
-            } else {
-                val rate = metrics.heightPixels / maxRes
-                mDisplayHeight = maxRes.toInt()
-                mDisplayWidth = (metrics.widthPixels / rate).toInt()
-            }
-        }
+        
+        // if (Build.VERSION.SDK_INT < Build.VERSION_CODES.R) {
+        //     mDisplayHeight = metrics.heightPixels
+        //     mDisplayWidth = metrics.widthPixels
+        // }else{
+        //     var maxRes = 1280.0;
+        //     if (metrics.scaledDensity >= 3.0f) {
+        //         maxRes = 1920.0;
+        //     }
+        //     if (metrics.widthPixels > metrics.heightPixels) {
+        //         val rate = metrics.widthPixels / maxRes
+        //         mDisplayWidth = maxRes.toInt()
+        //         mDisplayHeight = (metrics.heightPixels / rate).toInt()
+        //     } else {
+        //         val rate = metrics.heightPixels / maxRes
+        //         mDisplayHeight = maxRes.toInt()
+        //         mDisplayWidth = (metrics.widthPixels / rate).toInt()
+        //     }
+        // }
         println("Scaled Density")
         println(metrics.scaledDensity)
         println("Original Resolution ")
