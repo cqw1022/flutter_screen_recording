@@ -184,20 +184,20 @@ class FlutterScreenRecordingPlugin(
                     return;
                 }
                 readyImageCount = readyImageCount - 1;
-                var width: Int = image.getWidth();
-                var height: Int = image.getHeight();
+                // var width: Int = image.getWidth();
+                // var height: Int = image.getHeight();
                 // println("acquireNextImage @@@ ${width} ${height}");
 
                 var planes = image.getPlanes();
                 var buffer:ByteBuffer = planes[0].getBuffer();
 
-                val byteArray = ByteArray(buffer.remaining())
-                buffer.get(byteArray)
+                // val byteArray = ByteArray(buffer.capacity())
+                // buffer.get(byteArray)
 
-                var pixelStride: Int = planes[0].getPixelStride();
-                var rowStride: Int = planes[0].getRowStride();
-                var rowPadding: Int = rowStride - pixelStride * width;
-                println("acquireNextImage @@@@@@@@@@ ${width+rowPadding/pixelStride} ${width}  ${height}");
+                // var pixelStride: Int = planes[0].getPixelStride();
+                // var rowStride: Int = planes[0].getRowStride();
+                // var rowPadding: Int = rowStride - pixelStride * width;
+                // println("acquireNextImage @@@@@@@@@@ ${width+rowPadding/pixelStride} ${width}  ${height}");
 
 
                 // // Create a byte array to hold the image data in BGR format
@@ -226,7 +226,7 @@ class FlutterScreenRecordingPlugin(
                 // // // var stream:ByteArrayOutputStream = ByteArrayOutputStream();
                 // // // bitmap.compress(Bitmap.CompressFormat.PNG, 100, stream);
                 // // var imageInByte = stream.toByteArray();
-                result.success(byteArray);
+                result.success(buffer.array());
                 image.close();
         } else if (call.method == "getReadyImageCount") {
                 result.success(readyImageCount);
