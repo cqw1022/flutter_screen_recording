@@ -194,3 +194,99 @@ let screenSize = UIScreen.main.bounds
 }
     
 }
+
+// https://blog.csdn.net/jeffasd/article/details/80571366 
+
+// import CoreVideo
+// import CoreGraphics
+
+// func convertToARGB(sampleBuffer: CMSampleBuffer) -> CGImage? {
+//     guard let imageBuffer = CMSampleBufferGetImageBuffer(sampleBuffer) else {
+//         return nil
+//     }
+
+//     CVPixelBufferLockBaseAddress(imageBuffer, .readOnly)
+
+//     let baseAddress = CVPixelBufferGetBaseAddress(imageBuffer)
+//     let width = CVPixelBufferGetWidth(imageBuffer)
+//     let height = CVPixelBufferGetHeight(imageBuffer)
+//     let bytesPerRow = CVPixelBufferGetBytesPerRow(imageBuffer)
+//     let colorSpace = CGColorSpaceCreateDeviceRGB()
+
+//     let context = CGContext(data: baseAddress,
+//                             width: width,
+//                             height: height,
+//                             bitsPerComponent: 8,
+//                             bytesPerRow: bytesPerRow,
+//                             space: colorSpace,
+//                             bitmapInfo: CGBitmapInfo.byteOrder32Little.rawValue | CGImageAlphaInfo.premultipliedFirst.rawValue)
+
+//     let image = context?.makeImage()
+
+//     CVPixelBufferUnlockBaseAddress(imageBuffer, .readOnly)
+
+//     return image
+// }
+
+
+// import cv2
+// import numpy as np
+// from CoreMedia import CVPixelBufferLockBaseAddress, CVPixelBufferGetBaseAddress, CVPixelBufferGetWidth, CVPixelBufferGetHeight, CVPixelBufferGetBytesPerRow, CVPixelBufferUnlockBaseAddress
+
+// def convertSampleBufferToOpenCVRGBA(sampleBuffer):
+//     imageBuffer = CMSampleBufferGetImageBuffer(sampleBuffer)
+//     CVPixelBufferLockBaseAddress(imageBuffer, 0)
+    
+//     width = CVPixelBufferGetWidth(imageBuffer)
+//     height = CVPixelBufferGetHeight(imageBuffer)
+//     bytesPerRow = CVPixelBufferGetBytesPerRow(imageBuffer)
+    
+//     baseAddress = CVPixelBufferGetBaseAddress(imageBuffer)
+//     pixelData = np.frombuffer(baseAddress, dtype=np.uint8)
+    
+//     # Convert YUV420 to RGB
+//     yuvImage = pixelData.reshape((int(1.5 * height), bytesPerRow))
+//     rgbaImage = cv2.cvtColor(yuvImage, cv2.COLOR_YUV2RGBA_I420)
+    
+//     CVPixelBufferUnlockBaseAddress(imageBuffer, 0)
+//     return rgbaImage
+
+// # Usage
+// if yourSampleBuffer is not None:
+//     rgbaImage = convertSampleBufferToOpenCVRGBA(yourSampleBuffer)
+//     cv2.imshow("OpenCV Image", rgbaImage)
+//     cv2.waitKey(0)
+//     cv2.destroyAllWindows()
+
+
+
+// RPScreenRecorder 在录制屏幕时生成的 CMSampleBuffer 的像素格式通常是压缩后的 YUV 格式。这些样本缓冲区包含经过 H.264 编码的视频数据，其中 YUV 表示亮度（Y）和色度（U、V）分量。
+
+// 具体来说，录制视频的 CMSampleBuffer 通常采用 kCVPixelFormatType_420YpCbCr8BiPlanarVideoRange 或 kCVPixelFormatType_420YpCbCr8BiPlanarFullRange 这些格式，这两者都是表示 YUV420 平面格式的常见类型。
+
+// kCVPixelFormatType_420YpCbCr8BiPlanarVideoRange：这是一种视频范围的 YUV420 格式，其中亮度通道（Y）是完整范围，而色度通道（U、V）则在采样上进行了压缩。这通常是 H.264 编码后的像素格式。
+
+// kCVPixelFormatType_420YpCbCr8BiPlanarFullRange：这是一种完整范围的 YUV420 格式，其中亮度和色度通道都是完整范围。在某些情况下，录制的视频可能会使用这种格式。
+
+// 当你从 RPScreenRecorder 中获取 CMSampleBuffer 时，可以通过检查样本缓冲区的像素格式来了解实际使用的格式。可以使用 CVPixelBufferGetPixelFormatType 函数来获取像素格式类型。
+
+// 以下是一个示例代码，展示如何获取 CMSampleBuffer 的像素格式类型：
+
+// swift
+// import ReplayKit
+
+// func getPixelFormatFromSampleBuffer(_ sampleBuffer: CMSampleBuffer) -> OSType {
+//     guard let pixelBuffer = CMSampleBufferGetImageBuffer(sampleBuffer) else {
+//         return 0
+//     }
+    
+//     let pixelFormat = CVPixelBufferGetPixelFormatType(pixelBuffer)
+//     return pixelFormat
+// }
+
+// // Usage
+// if let sampleBuffer = yourSampleBuffer {
+//     let pixelFormat = getPixelFormatFromSampleBuffer(sampleBuffer)
+//     print("Pixel format: \(pixelFormat)")
+// }
+// 请注意，上述示例中的 getPixelFormatFromSampleBuffer 函数将获取到的像素格式类型打印出来。在使用实际的录制数据时，请根据像素格式类型进行相应的处理。
