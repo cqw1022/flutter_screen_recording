@@ -43,6 +43,10 @@ abstract class FlutterScreenRecordingPlatform extends PlatformInterface {
   Future<bool> startCaptureScreen() {
     throw UnimplementedError();
   }
+  
+  Future<bool> startCaptureScreenWithArgs(Map args) async {
+    throw UnimplementedError();
+  }
 
   Future<bool> startRecordScreenAndAudio(String name) {
     throw UnimplementedError();

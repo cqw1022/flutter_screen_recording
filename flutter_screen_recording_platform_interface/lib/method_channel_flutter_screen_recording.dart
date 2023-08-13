@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:ffi';
 
 import 'package:flutter/services.dart';
 
@@ -18,6 +19,12 @@ class MethodChannelFlutterScreenRecording
   Future<bool> startCaptureScreen() async {
     final bool start = await _channel
         .invokeMethod('startCaptureScreen', {"audio": false});
+    return start;
+  }
+  
+  Future<bool> startCaptureScreenWithArgs(Map args) async {
+    final bool start = await _channel
+        .invokeMethod('startCaptureScreen', args);
     return start;
   }
 

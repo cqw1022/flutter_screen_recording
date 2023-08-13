@@ -22,6 +22,13 @@ class FlutterScreenRecording {
     final bool start = await FlutterScreenRecordingPlatform.instance.startCaptureScreen();
     return start;
   }
+  static Future<bool> startCaptureScreenWithArgs(Map args, {String? titleNotification, String? messageNotification}) async{
+    titleNotification ??= "";
+    messageNotification ??= "";
+    await _maybeStartFGS(titleNotification, messageNotification);
+    final bool start = await FlutterScreenRecordingPlatform.instance.startCaptureScreenWithArgs(args);
+    return start;
+  }
 
   static Future<Uint8List?> acquireNextImage() async{
     return await FlutterScreenRecordingPlatform.instance.acquireNextImage();

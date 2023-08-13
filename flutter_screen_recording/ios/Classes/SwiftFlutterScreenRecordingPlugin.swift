@@ -17,9 +17,9 @@ public class SwiftFlutterScreenRecordingPlugin: NSObject, FlutterPlugin {
     var recordAudio: Bool = false;
     var isStartCapture: Bool = false;
     var sampleBufferCache: [Data] = []
-    let captureInterval = 0.3
+    var captureInterval = 0.1
     var captureWait = 0.0
-    let maxCacheSize = 3
+    var maxCacheSize = 3
     var myResult: FlutterResult?
     let screenSize = UIScreen.main.bounds
     
@@ -48,6 +48,9 @@ public class SwiftFlutterScreenRecordingPlugin: NSObject, FlutterPlugin {
                 result("")
         }else if(call.method == "startCaptureScreen"){
             myResult = result
+            let args = call.arguments as? Dictionary<String, Any>
+            self.captureInterval = (args?["captureInterval"] as? Double)!
+            self.maxCacheSize = (args?["maxCacheSize"] as? Int)!
             startCaptureScreen()
             //  let args = call.arguments as? Dictionary<String, Any>
             //  self.recordAudio = (args?["audio"] as? Bool)!
@@ -96,7 +99,7 @@ public class SwiftFlutterScreenRecordingPlugin: NSObject, FlutterPlugin {
 
                 switch rpSampleType {
                     case RPSampleBufferType.video:
-                        print("writing sample....");
+                        // print("writing sample....");
                         if(!self.isStartCapture) {
                             self.isStartCapture = true;
                             self.myResult!(true)
@@ -108,24 +111,41 @@ public class SwiftFlutterScreenRecordingPlugin: NSObject, FlutterPlugin {
                         if(self.captureWait > currentTime ) {
                             return
                         }
-                        print("writing sample....11111@@");
-                        print("sample size", cmSampleBuffer.totalSampleSize);
+//                        print("writing sample....11111@@");
+//                        print("sample size",  cmSampleBuffer.isValid, cmSampleBuffer.dataBuffer?.dataLength, cmSampleBuffer.imageBuffer);
                         self.captureWait = currentTime + self.captureInterval
-                        if let blockBuffer = CMSampleBufferGetDataBuffer(cmSampleBuffer) {
-                            print("writing sample....222222");
-                            var dataPointer: UnsafeMutablePointer<Int8>?
-                            var length = 0
-                            CMBlockBufferGetDataPointer(blockBuffer, atOffset: 0, lengthAtOffsetOut: nil, totalLengthOut: &length, dataPointerOut: &dataPointer)
-
-                            if let dataPointer = dataPointer {
-                                let data = Data(bytes: dataPointer, count: length)
-                                sampleBufferCache.append(data)
-                                print("writing sample....333333");
+                        if let imageBuffer = CMSampleBufferGetImageBuffer(cmSampleBuffer) {
+                            CVPixelBufferLockBaseAddress(imageBuffer, .readOnly)
+                            
+                            if let baseAddress = CVPixelBufferGetBaseAddress(imageBuffer) {
+                                let bytesPerRow = CVPixelBufferGetBytesPerRow(imageBuffer)
+                                let height = CVPixelBufferGetHeight(imageBuffer)
+                                let totalBytes = bytesPerRow * height
+                                let bufferPoint = baseAddress.assumingMemoryBound(to: UInt8.self)
+                                let data = Data(bytes: bufferPoint, count :totalBytes)
+                                sampleBufferCache.append(data);
                                 while sampleBufferCache.count > maxCacheSize {
                                     sampleBufferCache.removeFirst()
                                 }
+                                // print("success ")
                             }
+                            CVPixelBufferUnlockBaseAddress(imageBuffer, .readOnly)
                         }
+//                        if let blockBuffer = CMSampleBufferGetDataBuffer(cmSampleBuffer) {
+//                            print("writing sample....222222");
+//                            var dataPointer: UnsafeMutablePointer<Int8>?
+//                            var length = 0
+//                            CMBlockBufferGetDataPointer(blockBuffer, atOffset: 0, lengthAtOffsetOut: nil, totalLengthOut: &length, dataPointerOut: &dataPointer)
+//
+//                            if let dataPointer = dataPointer {
+//                                let data = Data(bytes: dataPointer, count: length)
+//                                sampleBufferCache.append(data)
+//                                print("writing sample....333333");
+//                                while sampleBufferCache.count > maxCacheSize {
+//                                    sampleBufferCache.removeFirst()
+//                                }
+//                            }
+//                        }
                     default:
                         return;
                     // print("not a video sample, so ignore");
@@ -163,8 +183,10 @@ public class SwiftFlutterScreenRecordingPlugin: NSObject, FlutterPlugin {
     }
 
     @objc func acquireNextImage() {
+        print("sampleBufferCache count 111: ", sampleBufferCache.count )
         while sampleBufferCache.count > 0 {
            let data = sampleBufferCache.removeFirst()
+            print("sampleBufferCache count 222: ", sampleBufferCache.count )
            self.myResult!(data)
            return
        }
