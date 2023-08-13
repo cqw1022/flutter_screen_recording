@@ -18,7 +18,7 @@ public class SwiftFlutterScreenRecordingPlugin: NSObject, FlutterPlugin {
     var isStartCapture: Bool = false;
     var sampleBufferCache: [Data] = []
     let captureInterval = 0.3
-    var captureWait = 0
+    var captureWait = 0.0
     let maxCacheSize = 3
     var myResult: FlutterResult?
     let screenSize = UIScreen.main.bounds
