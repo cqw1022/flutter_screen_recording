@@ -108,7 +108,8 @@ public class SwiftFlutterScreenRecordingPlugin: NSObject, FlutterPlugin {
                         if(self.captureWait > currentTime ) {
                             return
                         }
-                        print("writing sample....11111");
+                        print("writing sample....11111@@");
+                        print("sample size", cmSampleBuffer.totalSampleSize);
                         self.captureWait = currentTime + self.captureInterval
                         if let blockBuffer = CMSampleBufferGetDataBuffer(cmSampleBuffer) {
                             print("writing sample....222222");
