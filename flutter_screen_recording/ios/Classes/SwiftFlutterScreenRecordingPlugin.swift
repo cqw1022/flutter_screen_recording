@@ -108,8 +108,10 @@ public class SwiftFlutterScreenRecordingPlugin: NSObject, FlutterPlugin {
                         if(self.captureWait > currentTime ) {
                             return
                         }
+                        print("writing sample....11111");
                         self.captureWait = currentTime + self.captureInterval
                         if let blockBuffer = CMSampleBufferGetDataBuffer(cmSampleBuffer) {
+                            print("writing sample....222222");
                             var dataPointer: UnsafeMutablePointer<Int8>?
                             var length = 0
                             CMBlockBufferGetDataPointer(blockBuffer, atOffset: 0, lengthAtOffsetOut: nil, totalLengthOut: &length, dataPointerOut: &dataPointer)
@@ -117,13 +119,14 @@ public class SwiftFlutterScreenRecordingPlugin: NSObject, FlutterPlugin {
                             if let dataPointer = dataPointer {
                                 let data = Data(bytes: dataPointer, count: length)
                                 sampleBufferCache.append(data)
+                                print("writing sample....333333");
                                 while sampleBufferCache.count > maxCacheSize {
                                     sampleBufferCache.removeFirst()
                                 }
                             }
                         }
                     default:
-                    print("not a video sample, so ignore");
+                    // print("not a video sample, so ignore");
                 }
             } ){(error) in
                 guard error == nil else {
