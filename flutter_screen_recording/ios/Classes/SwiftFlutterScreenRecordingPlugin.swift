@@ -99,7 +99,7 @@ public class SwiftFlutterScreenRecordingPlugin: NSObject, FlutterPlugin {
 
                 switch rpSampleType {
                     case RPSampleBufferType.video:
-                        // print("writing sample....");
+//                         print("writing sample....");
                         if(!self.isStartCapture) {
                             self.isStartCapture = true;
                             self.myResult!(true)
@@ -183,10 +183,8 @@ public class SwiftFlutterScreenRecordingPlugin: NSObject, FlutterPlugin {
     }
 
     @objc func acquireNextImage() {
-        print("sampleBufferCache count 111: ", sampleBufferCache.count )
         while sampleBufferCache.count > 0 {
            let data = sampleBufferCache.removeFirst()
-            print("sampleBufferCache count 222: ", sampleBufferCache.count )
            self.myResult!(data)
            return
        }
@@ -216,10 +214,10 @@ public class SwiftFlutterScreenRecordingPlugin: NSObject, FlutterPlugin {
         //Create the video settings
         if #available(iOS 11.0, *) {
             
-            var codec = AVVideoCodecJPEG;
+            var codec = AVVideoCodecType.jpeg;
             
             if(recordAudio){
-                codec = AVVideoCodecH264;
+                codec = AVVideoCodecType.h264;
             }
             
             let videoSettings: [String : Any] = [
