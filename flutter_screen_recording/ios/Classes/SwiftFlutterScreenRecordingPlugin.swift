@@ -2,47 +2,169 @@ import Flutter
 import UIKit
 import ReplayKit
 import Photos
+import Foundation
 
 public class SwiftFlutterScreenRecordingPlugin: NSObject, FlutterPlugin {
     
-let recorder = RPScreenRecorder.shared()
+    let recorder = RPScreenRecorder.shared()
 
-var videoOutputURL : URL?
-var videoWriter : AVAssetWriter?
+    var videoOutputURL : URL?
+    var videoWriter : AVAssetWriter?
 
-var audioInput:AVAssetWriterInput!
-var videoWriterInput : AVAssetWriterInput?
-var nameVideo: String = ""
-var recordAudio: Bool = false;
-var myResult: FlutterResult?
-let screenSize = UIScreen.main.bounds
+    var audioInput:AVAssetWriterInput!
+    var videoWriterInput : AVAssetWriterInput?
+    var nameVideo: String = ""
+    var recordAudio: Bool = false;
+    var isStartCapture: Bool = false;
+    var sampleBufferCache: [Data] = []
+    let captureInterval = 0.3
+    let captureWait = 0
+    let maxCacheSize = 3
+    var myResult: FlutterResult?
+    let screenSize = UIScreen.main.bounds
     
-  public static func register(with registrar: FlutterPluginRegistrar) {
-    let channel = FlutterMethodChannel(name: "flutter_screen_recording", binaryMessenger: registrar.messenger())
-    let instance = SwiftFlutterScreenRecordingPlugin()
-    registrar.addMethodCallDelegate(instance, channel: channel)
-  }
-
-  public func handle(_ call: FlutterMethodCall, result: @escaping FlutterResult) {
-
-    if(call.method == "startRecordScreen"){
-         myResult = result
-         let args = call.arguments as? Dictionary<String, Any>
-
-         self.recordAudio = (args?["audio"] as? Bool)!
-         self.nameVideo = (args?["name"] as? String)!+".mp4"
-         startRecording()
-
-    }else if(call.method == "stopRecordScreen"){
-        if(videoWriter != nil){
-            stopRecording()
-            let documentsPath = NSSearchPathForDirectoriesInDomains(.documentDirectory, .userDomainMask, true)[0] as NSString
-            result(String(documentsPath.appendingPathComponent(nameVideo)))
-        }
-         result("")
+    public static func register(with registrar: FlutterPluginRegistrar) {
+        let channel = FlutterMethodChannel(name: "flutter_screen_recording", binaryMessenger: registrar.messenger())
+        let instance = SwiftFlutterScreenRecordingPlugin()
+        registrar.addMethodCallDelegate(instance, channel: channel)
     }
-  }
 
+    public func handle(_ call: FlutterMethodCall, result: @escaping FlutterResult) {
+
+        if(call.method == "startRecordScreen"){
+            myResult = result
+            let args = call.arguments as? Dictionary<String, Any>
+
+            self.recordAudio = (args?["audio"] as? Bool)!
+            self.nameVideo = (args?["name"] as? String)!+".mp4"
+            startRecording()
+
+        }else if(call.method == "stopRecordScreen"){
+            if(videoWriter != nil){
+                stopRecording()
+                let documentsPath = NSSearchPathForDirectoriesInDomains(.documentDirectory, .userDomainMask, true)[0] as NSString
+                result(String(documentsPath.appendingPathComponent(nameVideo)))
+            }
+                result("")
+        }else if(call.method == "startCaptureScreen"){
+            myResult = result
+            startCaptureScreen()
+            //  let args = call.arguments as? Dictionary<String, Any>
+            //  self.recordAudio = (args?["audio"] as? Bool)!
+            //  self.nameVideo = (args?["name"] as? String)!+".mp4"
+            //  startRecording()
+        }else if(call.method == "acquireNextImage"){
+            myResult = result
+            //  let args = call.arguments as? Dictionary<String, Any>
+            //  self.recordAudio = (args?["audio"] as? Bool)!
+            //  self.nameVideo = (args?["name"] as? String)!+".mp4"
+            //  startRecording()
+            acquireNextImage()
+        } else if (call.method == "getReadyImageCount") {
+            result(self.sampleBufferCache.count)
+            // result.success(readyImageCount);
+        } else if (call.method == "stopCaptureScreen") {
+            myResult = result
+            stopCaptureScreen()
+        }
+        else if (call.method == "isScreenOn") {
+            if(self.isStartCapture) {
+                result(true)
+            } else {
+                result(false)
+            }
+        }
+        else {
+            result(false)
+        }
+
+
+    }
+
+    
+    @objc func startCaptureScreen() {
+        if #available(iOS 11.0, *) {
+            RPScreenRecorder.shared().isMicrophoneEnabled=false;
+            RPScreenRecorder.shared().isCameraEnabled=false;
+            RPScreenRecorder.shared().startCapture(
+                handler: { [self] (cmSampleBuffer, rpSampleType, error) in
+                guard error == nil else {
+                    print("Error starting capture");
+                    self.myResult!(false)
+                    return;
+                }
+
+                switch rpSampleType {
+                    case RPSampleBufferType.video:
+                        print("writing sample....");
+                        if(!self.isStartCapture) {
+                            self.isStartCapture = true;
+                            self.myResult!(true)
+                            self.captureWait = 0
+                        }
+
+
+                        let currentTime = Date().timeIntervalSince1970
+                        if(self.captureWait > currentTime ) {
+                            return
+                        }
+                        self.captureWait = currentTime + self.captureInterval
+                        if let blockBuffer = CMSampleBufferGetDataBuffer(cmSampleBuffer) {
+                            var dataPointer: UnsafeMutablePointer<Int8>?
+                            var length = 0
+                            CMBlockBufferGetDataPointer(blockBuffer, atOffset: 0, lengthAtOffsetOut: nil, totalLengthOut: &length, dataPointerOut: &dataPointer)
+
+                            if let dataPointer = dataPointer {
+                                let data = Data(bytes: dataPointer, count: length)
+                                sampleBufferCache.append(data)
+                                while sampleBufferCache.count > maxCacheSize {
+                                    sampleBufferCache.removeFirst()
+                                }
+                            }
+                        }
+                    default:
+                    print("not a video sample, so ignore");
+                }
+            } ){(error) in
+                guard error == nil else {
+                    print("Screen record not allowed");
+                    self.myResult!(false)
+                    return;
+                }
+            }
+        } else {
+            //Fallback on earlier versions
+        }
+    }
+
+
+    @objc func stopCaptureScreen() {
+        if (!self.isStartCapture) {
+            self.myResult!(true)
+            return
+        }
+        if #available(iOS 11.0, *) {
+            RPScreenRecorder.shared().stopCapture( handler: { (error) in
+                print("stopping recording");
+                self.isStartCapture = false
+                self.captureWait = 0
+                self.sampleBufferCache.removeAll()
+                self.myResult!(true)
+            })
+        } else {
+          //  Fallback on earlier versions
+            self.myResult!(true)
+        }
+    }
+
+    @objc func acquireNextImage() {
+        while sampleBufferCache.count > 0 {
+           let data = sampleBufferCache.removeFirst()
+           self.myResult!(data)
+           return
+       }
+       self.myResult!(nil)
+    }
 
     @objc func startRecording() {
 
