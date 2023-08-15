@@ -84,7 +84,55 @@ public class SwiftFlutterScreenRecordingPlugin: NSObject, FlutterPlugin {
 
     }
 
-    
+    func cmSampleBuffer2CGImageRef (cmSampleBuffer: CMSampleBuffer) -> CGImage?{
+        if let imageBuffer = CMSampleBufferGetImageBuffer(cmSampleBuffer) {
+            let ciImage = CIImage(cvPixelBuffer: imageBuffer)
+            let context = CIContext(options: nil)
+            let cgImage = context.createCGImage(ciImage, from: ciImage.extent)
+            return cgImage
+
+        }
+        return nil
+//            guard let pixelBuffer = CMSampleBufferGetImageBuffer(cmSampleBuffer) else {return nil}
+//
+//            CVPixelBufferLockBaseAddress(pixelBuffer, .readOnly)
+//
+//            let baseAddress = CVPixelBufferGetBaseAddress(pixelBuffer)
+//            let width = CVPixelBufferGetWidth(pixelBuffer)
+//            let height = CVPixelBufferGetHeight(pixelBuffer)
+//            let bytesPerRow = CVPixelBufferGetBytesPerRow(pixelBuffer)
+//            let colorSpace = CGColorSpaceCreateDeviceRGB()
+//
+//            let bitmapInfo = CGBitmapInfo(rawValue: CGImageAlphaInfo.premultipliedFirst.rawValue|CGBitmapInfo.byteOrder32Little.rawValue)
+//        guard let context = CGContext(data: baseAddress, width: width, height:height, bitsPerComponent: 8, bytesPerRow: bytesPerRow, space: colorSpace, bitmapInfo: bitmapInfo.rawValue) else {
+//                CVPixelBufferUnlockBaseAddress(pixelBuffer, .readOnly)
+//                return nil
+//
+//            }
+//
+//            guard let cgImage = context.makeImage() else {return nil}
+//            CVPixelBufferUnlockBaseAddress(pixelBuffer, .readOnly)
+//
+//            return cgImage
+        }
+
+    func CGImageRef2pixelBRGA(imageRef: CGImage) -> Data {
+        let width = imageRef.width
+        let height = imageRef.height
+        let bytesPerPixel = 4;
+        let bytesPerRow = bytesPerPixel * width;
+        let bitsPerComponent = 8;
+        let imageBytes = UnsafeMutableRawPointer.allocate(byteCount: bytesPerRow * height, alignment: MemoryLayout<UInt8>.alignment)
+        let colorSpace = CGColorSpaceCreateDeviceRGB()
+        var context = CGContext(data: imageBytes, width: width, height: height, bitsPerComponent: bitsPerComponent, bytesPerRow: bytesPerRow, space: colorSpace, bitmapInfo: CGBitmapInfo.byteOrder32Little.rawValue|CGImageAlphaInfo.premultipliedLast.rawValue)
+        let rect = CGRectMake(0, 0, CGFloat(width), CGFloat(height))
+        context?.draw(imageRef, in:rect)
+//        CGColorSpaceRelease(colorSpace)
+//        CGContextRelease(context)
+//        CGImageRelease(imageRef)
+        let data = Data(bytes: imageBytes, count:bytesPerRow * height)
+        return data
+    }
     @objc func startCaptureScreen() {
         if #available(iOS 11.0, *) {
             RPScreenRecorder.shared().isMicrophoneEnabled=false;
@@ -114,38 +162,145 @@ public class SwiftFlutterScreenRecordingPlugin: NSObject, FlutterPlugin {
 //                        print("writing sample....11111@@");
 //                        print("sample size",  cmSampleBuffer.isValid, cmSampleBuffer.dataBuffer?.dataLength, cmSampleBuffer.imageBuffer);
                         self.captureWait = currentTime + self.captureInterval
-                        if let imageBuffer = CMSampleBufferGetImageBuffer(cmSampleBuffer) {
-                            CVPixelBufferLockBaseAddress(imageBuffer, .readOnly)
-                            
-                            if let baseAddress = CVPixelBufferGetBaseAddress(imageBuffer) {
-                                let bytesPerRow = CVPixelBufferGetBytesPerRow(imageBuffer)
-                                let height = CVPixelBufferGetHeight(imageBuffer)
-                                let totalBytes = bytesPerRow * height
-                                let bufferPoint = baseAddress.assumingMemoryBound(to: UInt8.self)
-                                let data = Data(bytes: bufferPoint, count :totalBytes)
-                                sampleBufferCache.append(data);
-                                while sampleBufferCache.count > maxCacheSize {
-                                    sampleBufferCache.removeFirst()
-                                }
-                                // print("success ")
-                            }
-                            CVPixelBufferUnlockBaseAddress(imageBuffer, .readOnly)
+                        let image = cmSampleBuffer2CGImageRef(cmSampleBuffer: cmSampleBuffer);
+                        let data = CGImageRef2pixelBRGA(imageRef: image!)
+                        sampleBufferCache.append(data);
+                        while sampleBufferCache.count > maxCacheSize {
+                            sampleBufferCache.removeFirst()
                         }
-//                        if let blockBuffer = CMSampleBufferGetDataBuffer(cmSampleBuffer) {
-//                            print("writing sample....222222");
-//                            var dataPointer: UnsafeMutablePointer<Int8>?
-//                            var length = 0
-//                            CMBlockBufferGetDataPointer(blockBuffer, atOffset: 0, lengthAtOffsetOut: nil, totalLengthOut: &length, dataPointerOut: &dataPointer)
+//                        if let imageBuffer = CMSampleBufferGetImageBuffer(cmSampleBuffer) {
 //
-//                            if let dataPointer = dataPointer {
-//                                let data = Data(bytes: dataPointer, count: length)
-//                                sampleBufferCache.append(data)
-//                                print("writing sample....333333");
-//                                while sampleBufferCache.count > maxCacheSize {
-//                                    sampleBufferCache.removeFirst()
-//                                }
-//                            }
+//                            var pixformat = CVPixelBufferGetPixelFormatType(imageBuffer)
+//
+////                            let data1 = Data(bytes: &pixformat, count: MemoryLayout<FourCharCode>.size)
+////                            if let sss = CFStringCreateWithCString(nil, (data1 as NSData).bytes.bindMemory(to: CChar.self, capacity: data1.count), CFStringEncoding(kCFStringEncodingASCII)) {
+////                                print("@@@@~~~~~~ ", sss)
+////                            }
+////
+////                            CVPixelBufferLockBaseAddress(imageBuffer, .readOnly)
+////
+////                            let pixelWidth = CVPixelBufferGetWidth(imageBuffer)
+////                            let pixelHeight = CVPixelBufferGetHeight(imageBuffer)
+////
+////                            let yBytesperrow = CVPixelBufferGetBytesPerRowOfPlane(imageBuffer, 0)
+////                            let uvbytesperrow = CVPixelBufferGetBytesPerRowOfPlane(imageBuffer, 1)
+////                            let yPlaneSize = yBytesperrow * pixelHeight
+////                            let uvPlaneSize = uvbytesperrow * pixelHeight / 2
+////                            guard let baseAddress = CVPixelBufferGetBaseAddressOfPlane(imageBuffer, 0),
+////                                  let uvBaseAddress = CVPixelBufferGetBaseAddressOfPlane(imageBuffer, 1) else {
+////                                return
+////                            }
+////                            let yData = baseAddress.assumingMemoryBound(to: UInt8.self)
+////                            let uvData = uvBaseAddress.assumingMemoryBound(to: UInt8.self)
+////
+////                            let yBytes = UnsafeMutableBufferPointer(start: yData, count: yPlaneSize)
+////                            let uvBytes = UnsafeMutableBufferPointer(start: uvData, count: uvPlaneSize)
+////
+////                            var yuvBytes = [UInt8](repeating: 0, count: yPlaneSize + uvPlaneSize)
+////
+////                            yuvBytes.withUnsafeMutableBufferPointer {
+////                                yuvBuffer in memcpy(yuvBuffer.baseAddress, yBytes.baseAddress, yPlaneSize)
+////                            }
+////
+////                            yuvBytes.withUnsafeMutableBufferPointer{
+////                                yuvBuffer in memcpy(yuvBuffer.baseAddress?.advanced(by: yPlaneSize), uvBytes.baseAddress, uvPlaneSize)
+////                            }
+////                            let pixelWidth = CVPixelBufferGetWidth(imageBuffer)
+////                            let pixelHeight = CVPixelBufferGetHeight(imageBuffer)
+////                            let y_size = pixelWidth * pixelHeight;
+////                            let uv_size = y_size/2;
+////                            let yuv_frame = UnsafeMutableRawPointer.allocate(byteCount: y_size + uv_size, alignment: MemoryLayout<UInt8>.alignment)
+////                            let y_frame = CVPixelBufferGetBaseAddressOfPlane(imageBuffer, 0);
+////                            memcpy(yuv_frame, y_frame, y_size)
+////                            let uv_frame = CVPixelBufferGetBaseAddressOfPlane(imageBuffer, 1)
+////                            memcpy(yuv_frame + y_size, uv_frame, uv_size)
+////                            let data = Data(bytes: yuvBytes, count:yPlaneSize + uvPlaneSize)
+////                            sampleBufferCache.append(data);
+////                            while sampleBufferCache.count > maxCacheSize {
+////                                sampleBufferCache.removeFirst()
+////                            }
+////                            yuv_frame.initializeMemory(as: UInt8.self, repeating: 0, count: y_size + uv_size)
+////                            if let baseAddress = CVPixelBufferGetBaseAddress(imageBuffer) {
+////                                let bytesPerRow = CVPixelBufferGetBytesPerRow(imageBuffer)
+////                                let height = CVPixelBufferGetHeight(imageBuffer)
+////                                let totalBytes = bytesPerRow * height
+////                                let bufferPoint = baseAddress.assumingMemoryBound(to: UInt8.self)
+//////                                let formatDesc = CMSampleBufferGetFormatDescription(cmSampleBuffer)
+//////                                let pixelFormat = CMFormatDescriptionGetMediaSubType(formatDesc!)
+//////                                print("pixelFormat", pixelFormat)
+//////                                switch pixelFormat {
+//////                                case kCVPixelFormatType_422YpCbCr16BiPlanarVideoRange:
+//////                                    print("kCVPixelFormatType_422YpCbCr16BiPlanarVideoRange")
+//////                                case kCVPixelFormatType_444YpCbCr16BiPlanarVideoRange:
+//////                                    print("kCVPixelFormatType_444YpCbCr16BiPlanarVideoRange")
+//////                                case
+//////                                kCVPixelFormatType_444YpCbCr16VideoRange_16A_TriPlanar:
+//////                                    print("kCVPixelFormatType_444YpCbCr16VideoRange_16A_TriPlanar")
+//////
+//////
+//////                                case
+//////                                kCVPixelFormatType_Lossless_420YpCbCr8BiPlanarVideoRange:
+//////                                    print("kCVPixelFormatType_Lossless_420YpCbCr8BiPlanarVideoRange")
+//////
+//////                                case
+//////                                kCVPixelFormatType_Lossless_420YpCbCr10PackedBiPlanarVideoRange:
+//////                                    print("kCVPixelFormatType_Lossless_420YpCbCr10PackedBiPlanarVideoRange")
+//////
+//////                                case
+//////                                kCVPixelFormatType_Lossless_422YpCbCr10PackedBiPlanarVideoRange:
+//////                                    print("kCVPixelFormatType_Lossless_422YpCbCr10PackedBiPlanarVideoRange")
+//////
+//////
+//////
+//////                                case
+//////                                kCVPixelFormatType_420YpCbCr8BiPlanarVideoRange:
+//////                                    print("kCVPixelFormatType_420YpCbCr8BiPlanarVideoRange")
+//////                                case
+//////                                kCVPixelFormatType_422YpCbCr8BiPlanarVideoRange:
+//////                                    print("kCVPixelFormatType_422YpCbCr8BiPlanarVideoRange")
+//////                                case
+//////                                kCVPixelFormatType_444YpCbCr8BiPlanarVideoRange:
+//////                                    print("kCVPixelFormatType_444YpCbCr8BiPlanarVideoRange")
+//////
+//////
+//////
+//////                                case
+//////                                kCVPixelFormatType_420YpCbCr10BiPlanarVideoRange:
+//////                                    print("kCVPixelFormatType_420YpCbCr10BiPlanarVideoRange")
+//////                                case
+//////                                kCVPixelFormatType_422YpCbCr10BiPlanarVideoRange:
+//////                                    print("kCVPixelFormatType_422YpCbCr10BiPlanarVideoRange")
+//////                                case
+//////                                kCVPixelFormatType_444YpCbCr10BiPlanarVideoRange:
+//////                                    print("kCVPixelFormatType_444YpCbCr10BiPlanarVideoRange")
+//////                                default:
+//////                                    print("1111")
+//////                                }
+////                                print("image: ", bytesPerRow, height, totalBytes, CVPixelBufferGetWidth(imageBuffer))
+////                                let data = Data(bytes: bufferPoint, count :totalBytes)
+////                                sampleBufferCache.append(data);
+////                                while sampleBufferCache.count > maxCacheSize {
+////                                    sampleBufferCache.removeFirst()
+////                                }
+////                                // print("success ")
+////                            }
+//                            CVPixelBufferUnlockBaseAddress(imageBuffer, .readOnly)
 //                        }
+////                        if let blockBuffer = CMSampleBufferGetDataBuffer(cmSampleBuffer) {
+////                            print("writing sample....222222");
+////                            var dataPointer: UnsafeMutablePointer<Int8>?
+////                            var length = 0
+////                            CMBlockBufferGetDataPointer(blockBuffer, atOffset: 0, lengthAtOffsetOut: nil, totalLengthOut: &length, dataPointerOut: &dataPointer)
+////
+////                            if let dataPointer = dataPointer {
+////                                let data = Data(bytes: dataPointer, count: length)
+////                                sampleBufferCache.append(data)
+////                                print("writing sample....333333");
+////                                while sampleBufferCache.count > maxCacheSize {
+////                                    sampleBufferCache.removeFirst()
+////                                }
+////                            }
+////                        }
                     default:
                         return;
                     // print("not a video sample, so ignore");
