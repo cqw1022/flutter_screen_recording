@@ -4,9 +4,10 @@ import ReplayKit
 import Photos
 import Foundation
 
-public class SwiftFlutterScreenRecordingPlugin: NSObject, FlutterPlugin {
+public class SwiftFlutterScreenRecordingPlugin: RPBroadcastSampleHandler, FlutterPlugin, RPBroadcastControllerDelegate {
     
     let recorder = RPScreenRecorder.shared()
+    let broadcastController = RPBroadcastController()
 
     var videoOutputURL : URL?
     var videoWriter : AVAssetWriter?
@@ -16,12 +17,14 @@ public class SwiftFlutterScreenRecordingPlugin: NSObject, FlutterPlugin {
     var nameVideo: String = ""
     var recordAudio: Bool = false;
     var isStartCapture: Bool = false;
-    var sampleBufferCache: [Data] = []
+    var sampleBufferCache: [CMSampleBuffer] = []
     var captureInterval = 0.1
     var captureWait = 0.0
     var maxCacheSize = 3
     var myResult: FlutterResult?
+    var flutterResults: Dictionary<Int, FlutterResult> = {}
     let screenSize = UIScreen.main.bounds
+    let notificationCenter:CFNotificationCenterGetDarwinNotifyCenter = CFNotificationCenterGetDarwinNotifyCenter()
     
     public static func register(with registrar: FlutterPluginRegistrar) {
         let channel = FlutterMethodChannel(name: "flutter_screen_recording", binaryMessenger: registrar.messenger())
@@ -51,6 +54,7 @@ public class SwiftFlutterScreenRecordingPlugin: NSObject, FlutterPlugin {
             let args = call.arguments as? Dictionary<String, Any>
             self.captureInterval = (args?["captureInterval"] as? Double)!
             self.maxCacheSize = (args?["maxCacheSize"] as? Int)!
+            // startBroadcast()
             startCaptureScreen()
             //  let args = call.arguments as? Dictionary<String, Any>
             //  self.recordAudio = (args?["audio"] as? Bool)!
@@ -69,6 +73,35 @@ public class SwiftFlutterScreenRecordingPlugin: NSObject, FlutterPlugin {
         } else if (call.method == "stopCaptureScreen") {
             myResult = result
             stopCaptureScreen()
+        } else if (call.method == "launchReplayKitBroadcast") {
+            let args = call.arguments as? Dictionary<String, Any>
+            launchReplayKitBroadcast((args?["extensionName"] as? String)!)
+            result(true)
+        } else if (call.method == "finishReplayKitBroadcast") {
+            let args = call.arguments as? Dictionary<String, Any>
+            CFNotificationCenterPostNotification(CFNotificationCenterGetDarwinNotifyCenter(), (args?["notificationName"] as? String)!, nil, nil, true);
+            result(false)
+        } else if (call.method == "postReplayKitBroadcast") {
+            let args = call.arguments as? Dictionary<String, Any>
+            let notificationArgs = (args?["args"] as? Dictionary<String, Any>)!
+            let resultId = (notificationArgs?["resultId"] as? Int)!
+            flutterResults[resultId] = result
+            CFNotificationCenterPostNotification(CFNotificationCenterGetDarwinNotifyCenter(), (args?["notificationName"] as? String)!, nil, notificationArgs, true);
+        } else if (call.method == "initBroadcastConfig") {
+            let args = call.arguments as? Dictionary<String, Any>
+            let observerToA = CFNotificationCenterAddObserver(notificationCenter, nil, { (_ center: CFNotificationCenter?, _ observer: UnsafeMutableRawPointer?, _ name: CFNotificationName?, _ object: UnsafeRawPointer?, _ userInfo: CFDictionary?) in
+                if let userInfoDict = userInfo as? [String: Any] {
+                    // Access the arguments here
+                    if let resultId = userInfoDict["resultId"] as? Int {
+                        if let resultcb = self.flutterResults["resultId"] as? FlutterResult {
+                            if let resultArgs = userInfoDict["resultArgs"] as? Dictionary<String, Any> {
+                                resultcb(resultArgs)
+                            }
+                        }
+                    }
+                }
+            }, (args?["notificationName"] as? String)!, nil, CFNotificationSuspensionBehavior.deliverImmediately)
+            result(true)
         }
         else if (call.method == "isScreenOn") {
             if(self.isStartCapture) {
@@ -84,6 +117,16 @@ public class SwiftFlutterScreenRecordingPlugin: NSObject, FlutterPlugin {
 
     }
 
+    func launchReplayKitBroadcast(extensionName: String) {
+        let picker = RPSystemBroadcastPickerView(frame: CGRect(x: 0, y: 0, width: 44, height: 44))
+        picker.preferredExtension = bundle.bundleIdentifier;
+        if let viewController = UIApplication.shared.keyWindow?.rootViewController {
+            viewController.view.addSubview(picker)
+            result(true) // Indicates success
+        } else {
+            result(false)
+        }
+    }
     func cmSampleBuffer2CGImageRef (cmSampleBuffer: CMSampleBuffer) -> CGImage?{
         if let imageBuffer = CMSampleBufferGetImageBuffer(cmSampleBuffer) {
             let ciImage = CIImage(cvPixelBuffer: imageBuffer)
@@ -162,9 +205,11 @@ public class SwiftFlutterScreenRecordingPlugin: NSObject, FlutterPlugin {
 //                        print("writing sample....11111@@");
 //                        print("sample size",  cmSampleBuffer.isValid, cmSampleBuffer.dataBuffer?.dataLength, cmSampleBuffer.imageBuffer);
                         self.captureWait = currentTime + self.captureInterval
-                        let image = cmSampleBuffer2CGImageRef(cmSampleBuffer: cmSampleBuffer);
-                        let data = CGImageRef2pixelBRGA(imageRef: image!)
-                        sampleBufferCache.append(data);
+                        sampleBufferCache.append(cmSampleBuffer)
+                        
+//                        let image = cmSampleBuffer2CGImageRef(cmSampleBuffer: cmSampleBuffer);
+//                        let data = CGImageRef2pixelBRGA(imageRef: image!)
+//                        sampleBufferCache.append(data);
                         while sampleBufferCache.count > maxCacheSize {
                             sampleBufferCache.removeFirst()
                         }
@@ -339,7 +384,10 @@ public class SwiftFlutterScreenRecordingPlugin: NSObject, FlutterPlugin {
 
     @objc func acquireNextImage() {
         while sampleBufferCache.count > 0 {
-           let data = sampleBufferCache.removeFirst()
+           let cmSampleBuffer = sampleBufferCache.removeFirst()
+            
+            let image = cmSampleBuffer2CGImageRef(cmSampleBuffer: cmSampleBuffer);
+            let data = CGImageRef2pixelBRGA(imageRef: image!)
            self.myResult!(data)
            return
        }
