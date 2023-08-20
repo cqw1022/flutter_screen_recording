@@ -75,7 +75,7 @@ public class SwiftFlutterScreenRecordingPlugin: RPBroadcastSampleHandler, Flutte
             stopCaptureScreen()
         } else if (call.method == "launchReplayKitBroadcast") {
             let args = call.arguments as? Dictionary<String, Any>
-            launchReplayKitBroadcast((args?["extensionName"] as? String)!)
+            launchReplayKitBroadcast((args?["extensionName"] as? String)!, (args?["setupInfo"] as? Dictionary<String, Any>)!)
             result(true)
         } else if (call.method == "finishReplayKitBroadcast") {
             let args = call.arguments as? Dictionary<String, Any>
@@ -117,9 +117,10 @@ public class SwiftFlutterScreenRecordingPlugin: RPBroadcastSampleHandler, Flutte
 
     }
 
-    func launchReplayKitBroadcast(extensionName: String) {
+    func launchReplayKitBroadcast(extensionName: String, setupInfo: Dictionary<String, Any>) {
         let picker = RPSystemBroadcastPickerView(frame: CGRect(x: 0, y: 0, width: 44, height: 44))
         picker.preferredExtension = bundle.bundleIdentifier;
+        picker.setup(with: setupInfo)
         if let viewController = UIApplication.shared.keyWindow?.rootViewController {
             viewController.view.addSubview(picker)
             result(true) // Indicates success
