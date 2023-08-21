@@ -63,4 +63,20 @@ abstract class FlutterScreenRecordingPlatform extends PlatformInterface {
   Future<bool> get isScreenOn {
     throw UnimplementedError();
   }
+  
+  Future<bool> launchReplayKitBroadcast(String extensionName, Map<String, dynamic> setupInfo) async {
+    throw UnimplementedError();
+  }
+  
+  Future<bool> finishReplayKitBroadcast(String requestNotificationName) async {
+    throw UnimplementedError();
+  }
+
+  Future<bool> initBroadcastConfig(String requestNotificationName) async {
+    throw UnimplementedError();
+  }
+
+  Future<String> postReplayKitBroadcast(String requestNotificationName) async {
+    throw UnimplementedError();
+  }
 }

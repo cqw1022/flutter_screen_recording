@@ -79,14 +79,15 @@ public class SwiftFlutterScreenRecordingPlugin: RPBroadcastSampleHandler, Flutte
             result(true)
         } else if (call.method == "finishReplayKitBroadcast") {
             let args = call.arguments as? Dictionary<String, Any>
-            CFNotificationCenterPostNotification(CFNotificationCenterGetDarwinNotifyCenter(), (args?["notificationName"] as? String)!, nil, nil, true);
-            result(false)
+            let notificationArgs = (args?["args"] as? Dictionary<String, Any>)!
+            CFNotificationCenterPostNotification(CFNotificationCenterGetDarwinNotifyCenter(), (args?["requestNotificationName"] as? String)!, nil, notificationArgs, true);
+            result(true)
         } else if (call.method == "postReplayKitBroadcast") {
             let args = call.arguments as? Dictionary<String, Any>
             let notificationArgs = (args?["args"] as? Dictionary<String, Any>)!
             let resultId = (notificationArgs?["resultId"] as? Int)!
             flutterResults[resultId] = result
-            CFNotificationCenterPostNotification(CFNotificationCenterGetDarwinNotifyCenter(), (args?["notificationName"] as? String)!, nil, notificationArgs, true);
+            CFNotificationCenterPostNotification(CFNotificationCenterGetDarwinNotifyCenter(), (args?["requestNotificationName"] as? String)!, nil, notificationArgs, true);
         } else if (call.method == "initBroadcastConfig") {
             let args = call.arguments as? Dictionary<String, Any>
             let observerToA = CFNotificationCenterAddObserver(notificationCenter, nil, { (_ center: CFNotificationCenter?, _ observer: UnsafeMutableRawPointer?, _ name: CFNotificationName?, _ object: UnsafeRawPointer?, _ userInfo: CFDictionary?) in
@@ -100,7 +101,7 @@ public class SwiftFlutterScreenRecordingPlugin: RPBroadcastSampleHandler, Flutte
                         }
                     }
                 }
-            }, (args?["notificationName"] as? String)!, nil, CFNotificationSuspensionBehavior.deliverImmediately)
+            }, (args?["requestNotificationName"] as? String)!, nil, CFNotificationSuspensionBehavior.deliverImmediately)
             result(true)
         }
         else if (call.method == "isScreenOn") {

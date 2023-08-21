@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:ffi';
+import 'dart:io';
 
 import 'package:flutter/services.dart';
 
@@ -22,10 +23,43 @@ class MethodChannelFlutterScreenRecording
     return start;
   }
   
-  Future<bool> startCaptureScreenWithArgs(Map args) async {
+  Future<bool> launchReplayKitBroadcast(String extensionName, Map<String, dynamic> setupInfo) async {
+    // setupInfo
+    // requestNotificationName
+    // responsetNotificationName
     final bool start = await _channel
-        .invokeMethod('startCaptureScreen', args);
+        .invokeMethod('launchReplayKitBroadcast', {
+            extensionName: extensionName,
+            setupInfo: setupInfo,
+        });
     return start;
+  }
+  
+  Future<bool> finishReplayKitBroadcast(String requestNotificationName) async {
+    // requestNotificationName
+    final bool start = await _channel
+        .invokeMethod('finishReplayKitBroadcast', {
+            requestNotificationName: requestNotificationName,
+        });
+    return start;
+  }
+
+  Future<bool> initBroadcastConfig(String requestNotificationName) async {
+    // requestNotificationName
+    final bool result = await _channel
+        .invokeMethod('initBroadcastConfig', {
+            requestNotificationName: requestNotificationName,
+        });
+    return result;
+  }
+
+  Future<String> postReplayKitBroadcast(String requestNotificationName) async {
+    // requestNotificationName
+    final String result = await _channel
+        .invokeMethod('postReplayKitBroadcast', {
+            requestNotificationName: requestNotificationName,
+        });
+    return result;
   }
 
   Future<Uint8List?> acquireNextImage() async{
