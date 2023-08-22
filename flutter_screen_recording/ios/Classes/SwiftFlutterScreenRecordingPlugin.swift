@@ -22,9 +22,9 @@ public class SwiftFlutterScreenRecordingPlugin: RPBroadcastSampleHandler, Flutte
     var captureWait = 0.0
     var maxCacheSize = 3
     var myResult: FlutterResult?
-    var flutterResults: Dictionary<Int, FlutterResult> = {}
+    var flutterResults: [Int:FlutterResult] = [:]
     let screenSize = UIScreen.main.bounds
-    let notificationCenter:CFNotificationCenterGetDarwinNotifyCenter = CFNotificationCenterGetDarwinNotifyCenter()
+    let notificationCenter:CFNotificationCenter = CFNotificationCenterGetDarwinNotifyCenter()
     
     public static func register(with registrar: FlutterPluginRegistrar) {
         let channel = FlutterMethodChannel(name: "flutter_screen_recording", binaryMessenger: registrar.messenger())
@@ -74,34 +74,34 @@ public class SwiftFlutterScreenRecordingPlugin: RPBroadcastSampleHandler, Flutte
             myResult = result
             stopCaptureScreen()
         } else if (call.method == "launchReplayKitBroadcast") {
+            myResult = result
             let args = call.arguments as? Dictionary<String, Any>
-            launchReplayKitBroadcast((args?["extensionName"] as? String)!, (args?["setupInfo"] as? Dictionary<String, Any>)!)
-            result(true)
+            launchReplayKitBroadcast(extensionName: (args?["extensionName"] as? String)!, setupInfo: (args?["setupInfo"] as? Dictionary<String, Any>)!)
         } else if (call.method == "finishReplayKitBroadcast") {
             let args = call.arguments as? Dictionary<String, Any>
             let notificationArgs = (args?["args"] as? Dictionary<String, Any>)!
-            CFNotificationCenterPostNotification(CFNotificationCenterGetDarwinNotifyCenter(), (args?["requestNotificationName"] as? String)!, nil, notificationArgs, true);
+            CFNotificationCenterPostNotification(CFNotificationCenterGetDarwinNotifyCenter(), CFNotificationName.init((args?["requestNotificationName"] as? String)! as CFString), nil, notificationArgs as CFDictionary, true);
             result(true)
         } else if (call.method == "postReplayKitBroadcast") {
             let args = call.arguments as? Dictionary<String, Any>
             let notificationArgs = (args?["args"] as? Dictionary<String, Any>)!
-            let resultId = (notificationArgs?["resultId"] as? Int)!
+            let resultId = (notificationArgs["resultId"] as? Int)!
             flutterResults[resultId] = result
-            CFNotificationCenterPostNotification(CFNotificationCenterGetDarwinNotifyCenter(), (args?["requestNotificationName"] as? String)!, nil, notificationArgs, true);
+            CFNotificationCenterPostNotification(CFNotificationCenterGetDarwinNotifyCenter(), CFNotificationName.init((args?["requestNotificationName"] as? String)! as CFString), nil, notificationArgs as CFDictionary, true);
         } else if (call.method == "initBroadcastConfig") {
             let args = call.arguments as? Dictionary<String, Any>
-            let observerToA = CFNotificationCenterAddObserver(notificationCenter, nil, { (_ center: CFNotificationCenter?, _ observer: UnsafeMutableRawPointer?, _ name: CFNotificationName?, _ object: UnsafeRawPointer?, _ userInfo: CFDictionary?) in
+            let _: Void = CFNotificationCenterAddObserver(notificationCenter, nil, { (_ center: CFNotificationCenter?, _ observer: UnsafeMutableRawPointer?, _ name: CFNotificationName?, _ object: UnsafeRawPointer?, _ userInfo: CFDictionary?) in
                 if let userInfoDict = userInfo as? [String: Any] {
                     // Access the arguments here
                     if let resultId = userInfoDict["resultId"] as? Int {
-                        if let resultcb = self.flutterResults["resultId"] as? FlutterResult {
+                        if let resultcb = self.flutterResults[resultId] {
                             if let resultArgs = userInfoDict["resultArgs"] as? Dictionary<String, Any> {
                                 resultcb(resultArgs)
                             }
                         }
                     }
                 }
-            }, (args?["requestNotificationName"] as? String)!, nil, CFNotificationSuspensionBehavior.deliverImmediately)
+            }, (args?["requestNotificationName"] as? String)! as CFString, nil, CFNotificationSuspensionBehavior.deliverImmediately)
             result(true)
         }
         else if (call.method == "isScreenOn") {
@@ -119,14 +119,19 @@ public class SwiftFlutterScreenRecordingPlugin: RPBroadcastSampleHandler, Flutte
     }
 
     func launchReplayKitBroadcast(extensionName: String, setupInfo: Dictionary<String, Any>) {
-        let picker = RPSystemBroadcastPickerView(frame: CGRect(x: 0, y: 0, width: 44, height: 44))
-        picker.preferredExtension = bundle.bundleIdentifier;
-        picker.setup(with: setupInfo)
-        if let viewController = UIApplication.shared.keyWindow?.rootViewController {
-            viewController.view.addSubview(picker)
-            result(true) // Indicates success
+        if #available(iOS 12.0, *) {
+            let picker = RPSystemBroadcastPickerView(frame: CGRect(x: 0, y: 0, width: 44, height: 44))
+            picker.preferredExtension = extensionName;
+            if let viewController = UIApplication.shared.keyWindow?.rootViewController {
+                viewController.view.addSubview(picker)
+                (myResult ?? <#default value#>)(true) // Indicates success
+            } else {
+                (myResult ?? <#default value#>)(false)
+            }
         } else {
-            result(false)
+            // Fallback on earlier versions
+            (myResult ?? <#default value#>)(false)
+            return
         }
     }
     func cmSampleBuffer2CGImageRef (cmSampleBuffer: CMSampleBuffer) -> CGImage?{
