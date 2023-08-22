@@ -109,7 +109,7 @@ public class SwiftFlutterScreenRecordingPlugin: RPBroadcastSampleHandler, Flutte
                 }
                 print("onResult@@@@@@@");
             }
-            let _: Void = CFNotificationCenterAddObserver(notificationCenter, nil, onResult, (args?["requestNotificationName"] as? String)! as CFString, nil, CFNotificationSuspensionBehavior.deliverImmediately)
+            let _: Void = CFNotificationCenterAddObserver(notificationCenter, nil, onResult, (args?["responseNotificationName"] as? String)! as CFString, nil, CFNotificationSuspensionBehavior.deliverImmediately)
             result(true)
         }
         else if (call.method == "isScreenOn") {
