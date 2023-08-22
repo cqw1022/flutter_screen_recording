@@ -26,10 +26,15 @@ public class SwiftFlutterScreenRecordingPlugin: RPBroadcastSampleHandler, Flutte
     let screenSize = UIScreen.main.bounds
     let notificationCenter:CFNotificationCenter = CFNotificationCenterGetDarwinNotifyCenter()
     
+    static var instance:SwiftFlutterScreenRecordingPlugin?;
+    public static func getInstance() -> SwiftFlutterScreenRecordingPlugin {
+        return instance!
+    }
+    
     public static func register(with registrar: FlutterPluginRegistrar) {
         let channel = FlutterMethodChannel(name: "flutter_screen_recording", binaryMessenger: registrar.messenger())
-        let instance = SwiftFlutterScreenRecordingPlugin()
-        registrar.addMethodCallDelegate(instance, channel: channel)
+        instance = SwiftFlutterScreenRecordingPlugin()
+        registrar.addMethodCallDelegate(instance!, channel: channel)
     }
 
     public func handle(_ call: FlutterMethodCall, result: @escaping FlutterResult) {
@@ -90,18 +95,21 @@ public class SwiftFlutterScreenRecordingPlugin: RPBroadcastSampleHandler, Flutte
             CFNotificationCenterPostNotification(CFNotificationCenterGetDarwinNotifyCenter(), CFNotificationName.init((args?["requestNotificationName"] as? String)! as CFString), nil, notificationArgs as CFDictionary, true);
         } else if (call.method == "initBroadcastConfig") {
             let args = call.arguments as? Dictionary<String, Any>
-            let _: Void = CFNotificationCenterAddObserver(notificationCenter, nil, { (_ center: CFNotificationCenter?, _ observer: UnsafeMutableRawPointer?, _ name: CFNotificationName?, _ object: UnsafeRawPointer?, _ userInfo: CFDictionary?) in
+            
+            func onResult(_ center: CFNotificationCenter?, _ observer: UnsafeMutableRawPointer?, _ name: CFNotificationName?, _ object: UnsafeRawPointer?, _ userInfo: CFDictionary?) {
                 if let userInfoDict = userInfo as? [String: Any] {
                     // Access the arguments here
                     if let resultId = userInfoDict["resultId"] as? Int {
-                        if let resultcb = self.flutterResults[resultId] {
+                        if let resultcb = SwiftFlutterScreenRecordingPlugin.instance!.flutterResults[resultId] {
                             if let resultArgs = userInfoDict["resultArgs"] as? Dictionary<String, Any> {
                                 resultcb(resultArgs)
                             }
                         }
                     }
                 }
-            }, (args?["requestNotificationName"] as? String)! as CFString, nil, CFNotificationSuspensionBehavior.deliverImmediately)
+                print("onResult@@@@@@@");
+            }
+            let _: Void = CFNotificationCenterAddObserver(notificationCenter, nil, onResult, (args?["requestNotificationName"] as? String)! as CFString, nil, CFNotificationSuspensionBehavior.deliverImmediately)
             result(true)
         }
         else if (call.method == "isScreenOn") {
@@ -124,13 +132,13 @@ public class SwiftFlutterScreenRecordingPlugin: RPBroadcastSampleHandler, Flutte
             picker.preferredExtension = extensionName;
             if let viewController = UIApplication.shared.keyWindow?.rootViewController {
                 viewController.view.addSubview(picker)
-                (myResult ?? <#default value#>)(true) // Indicates success
+                myResult!(true) // Indicates success
             } else {
-                (myResult ?? <#default value#>)(false)
+                myResult!(false)
             }
         } else {
             // Fallback on earlier versions
-            (myResult ?? <#default value#>)(false)
+            myResult!(false)
             return
         }
     }
