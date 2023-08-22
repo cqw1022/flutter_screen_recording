@@ -22,6 +22,39 @@ class FlutterScreenRecording {
     final bool start = await FlutterScreenRecordingPlatform.instance.startCaptureScreen();
     return start;
   }
+
+  static Future<bool> launchReplayKitBroadcast(String extensionName, Map<String, dynamic> setupInfo, {String? titleNotification, String? messageNotification}) async{
+    titleNotification ??= "";
+    messageNotification ??= "";
+    await _maybeStartFGS(titleNotification, messageNotification);
+    final bool start = await FlutterScreenRecordingPlatform.instance.launchReplayKitBroadcast(extensionName, setupInfo);
+    return start;
+  }
+  
+  static Future<bool> finishReplayKitBroadcast(String requestNotificationName, {String? titleNotification, String? messageNotification}) async{
+    titleNotification ??= "";
+    messageNotification ??= "";
+    await _maybeStartFGS(titleNotification, messageNotification);
+    final bool start = await FlutterScreenRecordingPlatform.instance.finishReplayKitBroadcast(requestNotificationName);
+    return start;
+  }
+
+  static Future<bool> postReplayKitBroadcast(String requestNotificationName, {String? titleNotification, String? messageNotification}) async{
+    titleNotification ??= "";
+    messageNotification ??= "";
+    await _maybeStartFGS(titleNotification, messageNotification);
+    final bool start = await FlutterScreenRecordingPlatform.instance.postReplayKitBroadcast(requestNotificationName);
+    return start;
+  }
+
+  static Future<bool> initBroadcastConfig(String requestNotificationName, {String? titleNotification, String? messageNotification}) async{
+    titleNotification ??= "";
+    messageNotification ??= "";
+    await _maybeStartFGS(titleNotification, messageNotification);
+    final bool start = await FlutterScreenRecordingPlatform.instance.initBroadcastConfig(requestNotificationName);
+    return start;
+  }
+
   static Future<bool> startCaptureScreenWithArgs(Map args, {String? titleNotification, String? messageNotification}) async{
     titleNotification ??= "";
     messageNotification ??= "";
