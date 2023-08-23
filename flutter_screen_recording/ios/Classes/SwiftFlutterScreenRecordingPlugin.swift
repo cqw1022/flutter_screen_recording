@@ -131,14 +131,22 @@ public class SwiftFlutterScreenRecordingPlugin: RPBroadcastSampleHandler, Flutte
 
     func launchReplayKitBroadcast(extensionName: String, setupInfo: Dictionary<String, Any>) {
         if #available(iOS 12.0, *) {
-            let picker = RPSystemBroadcastPickerView(frame: CGRect(x: 0, y: 0, width: 44, height: 44))
+            let picker = RPSystemBroadcastPickerView(frame: CGRect(x: 100, y: 100, width: 44, height: 44))
             picker.preferredExtension = extensionName;
-            if let viewController = UIApplication.shared.keyWindow?.rootViewController {
-                viewController.view.addSubview(picker)
-                myResult!(true) // Indicates success
-            } else {
-                myResult!(false)
+            picker.showsMicrophoneButton = false;
+            for subView:UIView in picker.subviews {
+//                if (subView isMemberOfClass:[UIButton class]]) {
+                if subView.isKind(of: UIButton.self) {
+                    var button:UIButton = subView as! UIButton;
+                    button.sendActions(for: [.touchUpInside, .touchDown]);
+                }
             }
+//            if let viewController = UIApplication.shared.keyWindow?.rootViewController {
+//                viewController.view.addSubview(picker)
+//                myResult!(true) // Indicates success
+//            } else {
+//                myResult!(false)
+//            }
         } else {
             // Fallback on earlier versions
             myResult!(false)
