@@ -25,6 +25,7 @@ public class SwiftFlutterScreenRecordingPlugin: RPBroadcastSampleHandler, Flutte
     var flutterResults: [Int:FlutterResult] = [:]
     let screenSize = UIScreen.main.bounds
     let notificationCenter:CFNotificationCenter = CFNotificationCenterGetDarwinNotifyCenter()
+    var postReplayKitBroadcastResultId = 0
     
     static var instance:SwiftFlutterScreenRecordingPlugin?;
     public static func getInstance() -> SwiftFlutterScreenRecordingPlugin {
@@ -90,8 +91,10 @@ public class SwiftFlutterScreenRecordingPlugin: RPBroadcastSampleHandler, Flutte
         } else if (call.method == "postReplayKitBroadcast") {
             let args = call.arguments as? Dictionary<String, Any>
             let notificationArgs = (args?["args"] as? Dictionary<String, Any>)!
-            let resultId = (notificationArgs["resultId"] as? Int)!
-            flutterResults[resultId] = result
+            // let resultId = (notificationArgs["resultId"] as? Int)!
+            postReplayKitBroadcastResultId = postReplayKitBroadcastResultId + 1;
+            notificationArgs["resultId"] = postReplayKitBroadcastResultId;
+            flutterResults[postReplayKitBroadcastResultId] = result
             CFNotificationCenterPostNotification(CFNotificationCenterGetDarwinNotifyCenter(), CFNotificationName.init((args?["requestNotificationName"] as? String)! as CFString), nil, notificationArgs as CFDictionary, true);
         } else if (call.method == "initBroadcastConfig") {
             let args = call.arguments as? Dictionary<String, Any>
