@@ -29,8 +29,8 @@ class MethodChannelFlutterScreenRecording
     // responsetNotificationName
     final bool start = await _channel
         .invokeMethod('launchReplayKitBroadcast', {
-            extensionName: extensionName,
-            setupInfo: setupInfo,
+            "extensionName": extensionName,
+            "setupInfo": setupInfo,
         });
     return start;
   }
@@ -39,7 +39,7 @@ class MethodChannelFlutterScreenRecording
     // requestNotificationName
     final bool start = await _channel
         .invokeMethod('finishReplayKitBroadcast', {
-            requestNotificationName: requestNotificationName,
+            "requestNotificationName": requestNotificationName,
         });
     return start;
   }
@@ -48,7 +48,7 @@ class MethodChannelFlutterScreenRecording
     // requestNotificationName
     final bool result = await _channel
         .invokeMethod('initBroadcastConfig', {
-            requestNotificationName: requestNotificationName,
+            "requestNotificationName": requestNotificationName,
         });
     return result;
   }
@@ -57,7 +57,7 @@ class MethodChannelFlutterScreenRecording
     // requestNotificationName
     final String result = await _channel
         .invokeMethod('postReplayKitBroadcast', {
-            requestNotificationName: requestNotificationName,
+            "requestNotificationName": requestNotificationName,
         });
     return result;
   }
