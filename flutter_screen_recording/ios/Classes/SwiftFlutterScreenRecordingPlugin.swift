@@ -90,7 +90,7 @@ public class SwiftFlutterScreenRecordingPlugin: RPBroadcastSampleHandler, Flutte
             result(true)
         } else if (call.method == "postReplayKitBroadcast") {
             let args = call.arguments as? Dictionary<String, Any>
-            let notificationArgs = (args?["args"] as? Dictionary<String, Any>)!
+            var notificationArgs = (args?["args"] as? Dictionary<String, Any>)!
             // let resultId = (notificationArgs["resultId"] as? Int)!
             postReplayKitBroadcastResultId = postReplayKitBroadcastResultId + 1;
             notificationArgs["resultId"] = postReplayKitBroadcastResultId;
