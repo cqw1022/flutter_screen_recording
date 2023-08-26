@@ -72,7 +72,7 @@ abstract class FlutterScreenRecordingPlatform extends PlatformInterface {
     throw UnimplementedError();
   }
 
-  Future<bool> initBroadcastConfig(String responseNotificationName) async {
+  Future<bool> initBroadcastConfig(String appGroup, String responseNotificationName) async {
     throw UnimplementedError();
   }
 

@@ -3,6 +3,7 @@ import UIKit
 import ReplayKit
 import Photos
 import Foundation
+import MMWormhole
 
 public class SwiftFlutterScreenRecordingPlugin: RPBroadcastSampleHandler, FlutterPlugin, RPBroadcastControllerDelegate {
     
@@ -24,8 +25,10 @@ public class SwiftFlutterScreenRecordingPlugin: RPBroadcastSampleHandler, Flutte
     var myResult: FlutterResult?
     var flutterResults: [Int:FlutterResult] = [:]
     let screenSize = UIScreen.main.bounds
-    let notificationCenter:CFNotificationCenter = CFNotificationCenterGetDarwinNotifyCenter()
+//    let notificationCenter:CFNotificationCenter = CFNotificationCenterGetDarwinNotifyCenter()
     var postReplayKitBroadcastResultId = 0
+    var mmwormhole: MMWormhole?
+    var requestNotificationName: String?
     
     static var instance:SwiftFlutterScreenRecordingPlugin?;
     public static func getInstance() -> SwiftFlutterScreenRecordingPlugin {
@@ -80,15 +83,20 @@ public class SwiftFlutterScreenRecordingPlugin: RPBroadcastSampleHandler, Flutte
             myResult = result
             stopCaptureScreen()
         } else if (call.method == "launchReplayKitBroadcast") {
-//            myResult = result
+            myResult = result
             let args = call.arguments as? Dictionary<String, Any>
             launchReplayKitBroadcast(extensionName: (args?["extensionName"] as? String)!, setupInfo: (args?["setupInfo"] as? Dictionary<String, Any>)!)
-            result(true)
+//            result(true)
         } else if (call.method == "finishReplayKitBroadcast") {
             let args = call.arguments as? Dictionary<String, Any>
-            let notificationArgs = (args?["args"] as? Dictionary<String, Any>)!
-            CFNotificationCenterPostNotification(CFNotificationCenterGetDarwinNotifyCenter(), CFNotificationName.init((args?["requestNotificationName"] as? String)! as CFString), nil, notificationArgs as CFDictionary, true);
-            result(true)
+            var notificationArgs = (args?["args"] as? Dictionary<String, Any>)!
+//            CFNotificationCenterPostNotification(CFNotificationCenterGetDarwinNotifyCenter(), CFNotificationName.init((args?["requestNotificationName"] as? String)! as CFString), nil, notificationArgs as CFDictionary, true);
+//            result(true)
+            postReplayKitBroadcastResultId = postReplayKitBroadcastResultId + 1;
+            notificationArgs["resultId"] = postReplayKitBroadcastResultId;
+            notificationArgs["cmd"] = "finishReplayKitBroadcast";
+            flutterResults[postReplayKitBroadcastResultId] = result
+            self.mmwormhole?.passMessageObject(notificationArgs as NSCoding, identifier: "CaiCaiResult")
         } else if (call.method == "postReplayKitBroadcast") {
             let args = call.arguments as? Dictionary<String, Any>
             var notificationArgs = (args?["args"] as? Dictionary<String, Any>)!
@@ -96,25 +104,28 @@ public class SwiftFlutterScreenRecordingPlugin: RPBroadcastSampleHandler, Flutte
             postReplayKitBroadcastResultId = postReplayKitBroadcastResultId + 1;
             notificationArgs["resultId"] = postReplayKitBroadcastResultId;
             flutterResults[postReplayKitBroadcastResultId] = result
-            CFNotificationCenterPostNotification(CFNotificationCenterGetDarwinNotifyCenter(), CFNotificationName.init((args?["requestNotificationName"] as? String)! as CFString), nil, notificationArgs as CFDictionary, true);
+            self.mmwormhole?.passMessageObject(notificationArgs as NSCoding, identifier: "CaiCaiResult")
+//            CFNotificationCenterPostNotification(CFNotificationCenterGetDarwinNotifyCenter(), CFNotificationName.init((args?["requestNotificationName"] as? String)! as CFString), nil, notificationArgs as CFDictionary, true);
         } else if (call.method == "initBroadcastConfig") {
             let args = call.arguments as? Dictionary<String, Any>
-//            let wormhole = MMWormhole(applicationGroupIdentifier: "group.com.mutualmobile.wormhole", optionalDirectory: "wormhole")
-            func onResult(center: CFNotificationCenter?, observer: UnsafeMutableRawPointer?, name: CFNotificationName?, object: UnsafeRawPointer?, userInfo: CFDictionary?) {
-                print("result")
-                 if let userInfoDict = userInfo as? [String: Any] {
-                    // Access the arguments here
-                    if let resultId = userInfoDict["resultId"] as? Int {
-                        if let resultcb = SwiftFlutterScreenRecordingPlugin.instance!.flutterResults[resultId] {
-                            if let resultArgs = userInfoDict["resultArgs"] as? Dictionary<String, Any> {
+            let appGroup:String? = args?["appGroup"] as? String
+            self.requestNotificationName = args?["requestNotificationName"] as? String
+            self.mmwormhole = MMWormhole(applicationGroupIdentifier: appGroup!, optionalDirectory: appGroup!)
+            self.mmwormhole?.listenForMessage(withIdentifier: (args?["responseNotificationName"] as? String)!, listener: { (messageObject) -> Void in
+                if let message: [String:Any] = messageObject as? [String:Any] {
+                    if let resultId = message["resultId"] as? Int {
+                        if let resultcb = SwiftFlutterScreenRecordingPlugin.instance?.flutterResults[resultId] {
+                            if let resultArgs = message["resultArgs"] as? Dictionary<String, Any> {
                                 resultcb(resultArgs)
+                                return
                             }
                         }
+                    } else {
+                        SwiftFlutterScreenRecordingPlugin.instance?.myResult?(message["resultArgs"] ?? true)
+                        SwiftFlutterScreenRecordingPlugin.instance?.myResult = nil
                     }
                 }
-                print("onResult@@@@@@@");
-            }
-            let _: Void = CFNotificationCenterAddObserver(CFNotificationCenterGetDarwinNotifyCenter(), nil, onResult, (args?["responseNotificationName"] as? String)! as CFString, nil, CFNotificationSuspensionBehavior.deliverImmediately)
+            })
             result(true)
         }
         else if (call.method == "isScreenOn") {
@@ -151,7 +162,8 @@ public class SwiftFlutterScreenRecordingPlugin: RPBroadcastSampleHandler, Flutte
 //            }
         } else {
             // Fallback on earlier versions
-            myResult!(false)
+            myResult?(false)
+            myResult = nil
             return
         }
     }
@@ -212,7 +224,8 @@ public class SwiftFlutterScreenRecordingPlugin: RPBroadcastSampleHandler, Flutte
                 handler: { [self] (cmSampleBuffer, rpSampleType, error) in
                 guard error == nil else {
                     print("Error starting capture");
-                    self.myResult!(false)
+                    self.myResult?(false)
+                    self.myResult = nil
                     return;
                 }
 
@@ -221,7 +234,8 @@ public class SwiftFlutterScreenRecordingPlugin: RPBroadcastSampleHandler, Flutte
 //                         print("writing sample....");
                         if(!self.isStartCapture) {
                             self.isStartCapture = true;
-                            self.myResult!(true)
+                            self.myResult?(true)
+                            self.myResult = nil
                             self.captureWait = 0
                         }
 
@@ -381,7 +395,8 @@ public class SwiftFlutterScreenRecordingPlugin: RPBroadcastSampleHandler, Flutte
             } ){(error) in
                 guard error == nil else {
                     print("Screen record not allowed");
-                    self.myResult!(false)
+                    self.myResult?(false)
+                    self.myResult = nil
                     return;
                 }
             }
@@ -393,7 +408,8 @@ public class SwiftFlutterScreenRecordingPlugin: RPBroadcastSampleHandler, Flutte
 
     @objc func stopCaptureScreen() {
         if (!self.isStartCapture) {
-            self.myResult!(true)
+            self.myResult?(true)
+            self.myResult = nil
             return
         }
         if #available(iOS 11.0, *) {
@@ -402,11 +418,13 @@ public class SwiftFlutterScreenRecordingPlugin: RPBroadcastSampleHandler, Flutte
                 self.isStartCapture = false
                 self.captureWait = 0
                 self.sampleBufferCache.removeAll()
-                self.myResult!(true)
+                self.myResult?(true)
+                self.myResult = nil
             })
         } else {
           //  Fallback on earlier versions
-            self.myResult!(true)
+            self.myResult?(true)
+            self.myResult = nil
         }
     }
 
@@ -416,10 +434,12 @@ public class SwiftFlutterScreenRecordingPlugin: RPBroadcastSampleHandler, Flutte
             
             let image = cmSampleBuffer2CGImageRef(cmSampleBuffer: cmSampleBuffer);
             let data = CGImageRef2pixelBRGA(imageRef: image!)
-           self.myResult!(data)
+           self.myResult?(data)
+           self.myResult = nil
            return
        }
-       self.myResult!(nil)
+       self.myResult?(nil)
+       self.myResult = nil
     }
 
     @objc func startRecording() {
@@ -492,7 +512,8 @@ public class SwiftFlutterScreenRecordingPlugin: RPBroadcastSampleHandler, Flutte
                 guard error == nil else {
                     //Handle error
                     print("Error starting capture");
-                    self.myResult!(false)
+                    self.myResult?(false)
+                    self.myResult = nil
                     return;
                 }
 
@@ -503,7 +524,8 @@ public class SwiftFlutterScreenRecordingPlugin: RPBroadcastSampleHandler, Flutte
 
                         if (( self.videoWriter?.startWriting ) != nil) {
                             print("Starting writing");
-                            self.myResult!(true)
+                            self.myResult?(true)
+                            self.myResult = nil
                             self.videoWriter?.startWriting()
                             self.videoWriter?.startSession(atSourceTime:  CMSampleBufferGetPresentationTimeStamp(cmSampleBuffer))
                         }
@@ -514,7 +536,8 @@ public class SwiftFlutterScreenRecordingPlugin: RPBroadcastSampleHandler, Flutte
                             print("Writting a sample");
                             if  self.videoWriterInput?.append(cmSampleBuffer) == false {
                                 print(" we have a problem writing video")
-                                self.myResult!(false)
+                                self.myResult?(false)
+                                self.myResult = nil
                             }
                         }
                     }
@@ -527,7 +550,8 @@ public class SwiftFlutterScreenRecordingPlugin: RPBroadcastSampleHandler, Flutte
                         guard error == nil else {
                            //Handle error
                            print("Screen record not allowed");
-                           self.myResult!(false)
+                           self.myResult?(false)
+                           self.myResult = nil
                            return;
                        }
                    }
@@ -573,7 +597,7 @@ public class SwiftFlutterScreenRecordingPlugin: RPBroadcastSampleHandler, Flutte
     
 }
 
-// https://blog.csdn.net/jeffasd/article/details/80571366 
+// https://blog.csdn.net/jeffasd/article/details/80571366
 
 // import CoreVideo
 // import CoreGraphics

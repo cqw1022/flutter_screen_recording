@@ -44,10 +44,11 @@ class MethodChannelFlutterScreenRecording
     return start;
   }
 
-  Future<bool> initBroadcastConfig(String responseNotificationName) async {
+  Future<bool> initBroadcastConfig(String appGroup, String responseNotificationName) async {
     // responseNotificationName
     final bool result = await _channel
         .invokeMethod('initBroadcastConfig', {
+            "appGroup": appGroup,
             "responseNotificationName": responseNotificationName,
         });
     return result;

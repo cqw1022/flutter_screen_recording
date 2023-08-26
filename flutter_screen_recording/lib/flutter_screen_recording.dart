@@ -47,11 +47,11 @@ class FlutterScreenRecording {
     return start;
   }
 
-  static Future<bool> initBroadcastConfig(String responseNotificationName, {String? titleNotification, String? messageNotification}) async{
+  static Future<bool> initBroadcastConfig(String appGroup, String responseNotificationName, {String? titleNotification, String? messageNotification}) async{
     titleNotification ??= "";
     messageNotification ??= "";
     await _maybeStartFGS(titleNotification, messageNotification);
-    final bool start = await FlutterScreenRecordingPlatform.instance.initBroadcastConfig(responseNotificationName);
+    final bool start = await FlutterScreenRecordingPlatform.instance.initBroadcastConfig(appGroup, responseNotificationName);
     return start;
   }
 
