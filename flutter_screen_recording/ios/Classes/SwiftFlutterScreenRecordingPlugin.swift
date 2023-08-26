@@ -29,6 +29,7 @@ public class SwiftFlutterScreenRecordingPlugin: RPBroadcastSampleHandler, Flutte
     var postReplayKitBroadcastResultId = 0
     var mmwormhole: MMWormhole?
     var requestNotificationName: String?
+    var responseNotificationName: String?
     
     static var instance:SwiftFlutterScreenRecordingPlugin?;
     public static func getInstance() -> SwiftFlutterScreenRecordingPlugin {
@@ -96,7 +97,7 @@ public class SwiftFlutterScreenRecordingPlugin: RPBroadcastSampleHandler, Flutte
             notificationArgs["resultId"] = postReplayKitBroadcastResultId;
             notificationArgs["cmd"] = "finishReplayKitBroadcast";
             flutterResults[postReplayKitBroadcastResultId] = result
-            self.mmwormhole?.passMessageObject(notificationArgs as NSCoding, identifier: "CaiCaiResult")
+            self.mmwormhole?.passMessageObject(notificationArgs as NSCoding, identifier: self.requestNotificationName!)
         } else if (call.method == "postReplayKitBroadcast") {
             let args = call.arguments as? Dictionary<String, Any>
             var notificationArgs = (args?["args"] as? Dictionary<String, Any>)!
@@ -104,16 +105,21 @@ public class SwiftFlutterScreenRecordingPlugin: RPBroadcastSampleHandler, Flutte
             postReplayKitBroadcastResultId = postReplayKitBroadcastResultId + 1;
             notificationArgs["resultId"] = postReplayKitBroadcastResultId;
             flutterResults[postReplayKitBroadcastResultId] = result
-            self.mmwormhole?.passMessageObject(notificationArgs as NSCoding, identifier: "CaiCaiResult")
+            self.mmwormhole?.passMessageObject(notificationArgs as NSCoding, identifier: self.requestNotificationName!)
 //            CFNotificationCenterPostNotification(CFNotificationCenterGetDarwinNotifyCenter(), CFNotificationName.init((args?["requestNotificationName"] as? String)! as CFString), nil, notificationArgs as CFDictionary, true);
         } else if (call.method == "initBroadcastConfig") {
             let args = call.arguments as? Dictionary<String, Any>
             let appGroup:String? = args?["appGroup"] as? String
             self.requestNotificationName = args?["requestNotificationName"] as? String
+            self.responseNotificationName = args?["responseNotificationName"] as? String
             self.mmwormhole = MMWormhole(applicationGroupIdentifier: appGroup!, optionalDirectory: appGroup!)
             self.mmwormhole?.listenForMessage(withIdentifier: (args?["responseNotificationName"] as? String)!, listener: { (messageObject) -> Void in
                 if let message: [String:Any] = messageObject as? [String:Any] {
                     if let resultId = message["resultId"] as? Int {
+                        if resultId == 0 {
+                            self.isStartCapture = false
+                            return
+                        }
                         if let resultcb = SwiftFlutterScreenRecordingPlugin.instance?.flutterResults[resultId] {
                             if let resultArgs = message["resultArgs"] as? Dictionary<String, Any> {
                                 resultcb(resultArgs)
@@ -121,6 +127,7 @@ public class SwiftFlutterScreenRecordingPlugin: RPBroadcastSampleHandler, Flutte
                             }
                         }
                     } else {
+                        self.isStartCapture = true
                         SwiftFlutterScreenRecordingPlugin.instance?.myResult?(message["resultArgs"] ?? true)
                         SwiftFlutterScreenRecordingPlugin.instance?.myResult = nil
                     }

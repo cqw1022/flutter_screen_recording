@@ -55,11 +55,11 @@ class MethodChannelFlutterScreenRecording
     return result;
   }
 
-  Future<String> postReplayKitBroadcast(String requestNotificationName) async {
+  Future<String> postReplayKitBroadcast(Map<String, dynamic> args) async {
     // requestNotificationName
     final String result = await _channel
         .invokeMethod('postReplayKitBroadcast', {
-            "requestNotificationName": requestNotificationName,
+            "args": args,
         });
     return result;
   }
