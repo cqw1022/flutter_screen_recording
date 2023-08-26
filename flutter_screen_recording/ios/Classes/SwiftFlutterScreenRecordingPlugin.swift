@@ -116,12 +116,17 @@ public class SwiftFlutterScreenRecordingPlugin: RPBroadcastSampleHandler, Flutte
             self.mmwormhole?.listenForMessage(withIdentifier: (args?["responseNotificationName"] as? String)!, listener: { (messageObject) -> Void in
                 if let message: [String:Any] = messageObject as? [String:Any] {
                     if let resultId = message["resultId"] as? Int {
+                        if resultId == -1 {
+                            print(message["msg"]!)
+                            return
+                        }
                         if resultId == 0 {
                             self.isStartCapture = false
                             return
                         }
                         if let resultcb = SwiftFlutterScreenRecordingPlugin.instance?.flutterResults[resultId] {
-                            if let resultArgs = message["resultArgs"] as? Dictionary<String, Any> {
+                            SwiftFlutterScreenRecordingPlugin.instance?.flutterResults.removeValue(forKey: resultId)
+                            if let resultArgs = message["resultArgs"]{
                                 resultcb(resultArgs)
                                 return
                             }
