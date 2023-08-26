@@ -39,11 +39,11 @@ class FlutterScreenRecording {
     return start;
   }
 
-  static Future<String> postReplayKitBroadcast(Map<String, dynamic> args, {String? titleNotification, String? messageNotification}) async {
+  static Future<dynamic> postReplayKitBroadcast(Map<String, dynamic> args, {String? titleNotification, String? messageNotification}) async {
     titleNotification ??= "";
     messageNotification ??= "";
     await _maybeStartFGS(titleNotification, messageNotification);
-    final String start = await FlutterScreenRecordingPlatform.instance.postReplayKitBroadcast(args);
+    final dynamic start = await FlutterScreenRecordingPlatform.instance.postReplayKitBroadcast(args);
     return start;
   }
 
