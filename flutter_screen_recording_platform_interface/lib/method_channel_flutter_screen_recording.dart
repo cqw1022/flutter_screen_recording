@@ -12,7 +12,7 @@ class MethodChannelFlutterScreenRecording
       const MethodChannel('flutter_screen_recording');
       
 
-  Future<MethodChannel> createFlutterMethodChannel(String channelName, Future<dynamic> Function(MethodCall call)? handler) async {
+  Future<MethodChannel?> createFlutterMethodChannel(String channelName, Future<dynamic> Function(MethodCall call)? handler) async {
     final bool isSuccess = await _channel
         .invokeMethod('addFlutterMethodChannel', {"channelName": channelName});
     if(isSuccess) {

@@ -9,7 +9,7 @@ import 'dart:io';
 
 class FlutterScreenRecording {
   
-  static Future<MethodChannel> createFlutterMethodChannel(String channelName, Future<dynamic> Function(MethodCall call)? handler, {String? titleNotification, String? messageNotification}) async {
+  static Future<MethodChannel?> createFlutterMethodChannel(String channelName, Future<dynamic> Function(MethodCall call)? handler, {String? titleNotification, String? messageNotification}) async {
     titleNotification ??= "";
     messageNotification ??= "";
     await _maybeStartFGS(titleNotification, messageNotification);
