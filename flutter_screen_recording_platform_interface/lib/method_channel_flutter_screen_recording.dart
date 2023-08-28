@@ -18,7 +18,7 @@ class MethodChannelFlutterScreenRecording
     if(isSuccess) {
       var channel = MethodChannel(channelName);
       channel.setMethodCallHandler(handler);
-      return channel
+      return channel;
     }
   }
   
