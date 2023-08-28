@@ -2,6 +2,7 @@ library flutter_screen_recording_platform_interface;
 
 import 'dart:async';
 import 'dart:typed_data';
+import 'package:flutter/services.dart';
 import 'package:plugin_platform_interface/plugin_platform_interface.dart';
 import 'method_channel_flutter_screen_recording.dart';
 
