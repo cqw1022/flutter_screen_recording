@@ -7,6 +7,23 @@ import 'dart:io';
 
 
 class FlutterScreenRecording {
+  
+  static Future<MethodChannel> createFlutterMethodChannel(String channelName, Future<dynamic> Function(MethodCall call)? handler, {String? titleNotification, String? messageNotification}) async {
+    titleNotification ??= "";
+    messageNotification ??= "";
+    await _maybeStartFGS(titleNotification, messageNotification);
+    
+    return await FlutterScreenRecordingPlatform.instance.createFlutterMethodChannel(channelName, handler);
+  }
+  
+
+  static Future<dynamic> callFlutterMethod(String channelName, String method, dynamic args, {String? titleNotification, String? messageNotification}) async {
+    titleNotification ??= "";
+    messageNotification ??= "";
+    await _maybeStartFGS(titleNotification, messageNotification);
+    return await FlutterScreenRecordingPlatform.instance.callFlutterMethod(channelName, method, args);
+  }
+
   static Future<bool> startRecordScreen(String name, {String? titleNotification, String? messageNotification}) async{
     titleNotification ??= "";
     messageNotification ??= "";

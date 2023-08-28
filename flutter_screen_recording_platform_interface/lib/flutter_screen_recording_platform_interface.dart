@@ -28,6 +28,14 @@ abstract class FlutterScreenRecordingPlatform extends PlatformInterface {
     _instance = instance;
   }
 
+  Future<MethodChannel> createFlutterMethodChannel(String channelName, Future<dynamic> Function(MethodCall call)? handler) async {
+    throw UnimplementedError();
+  }
+
+  Future<dynamic> callFlutterMethod(String channelName, String method, dynamic args) async {
+    throw UnimplementedError();
+  }
+
   Future<bool> startRecordScreen(String name) {
     throw UnimplementedError();
   }
