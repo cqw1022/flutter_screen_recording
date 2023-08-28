@@ -16,7 +16,7 @@ class MethodChannelFlutterScreenRecording
     final bool isSuccess = await _channel
         .invokeMethod('addFlutterMethodChannel', {"channelName": channelName});
     if(isSuccess) {
-      let channel = MethodChannel(channelName);
+      var channel = MethodChannel(channelName);
       channel.setMethodCallHandler(handler);
       return channel
     }
