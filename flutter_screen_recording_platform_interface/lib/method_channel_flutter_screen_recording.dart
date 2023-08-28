@@ -10,6 +10,24 @@ class MethodChannelFlutterScreenRecording
     extends FlutterScreenRecordingPlatform {
   static const MethodChannel _channel =
       const MethodChannel('flutter_screen_recording');
+      
+
+  Future<MethodChannel> createFlutterMethodChannel(String channelName, Future<dynamic> Function(MethodCall call)? handler) async {
+    final bool isSuccess = await _channel
+        .invokeMethod('addFlutterMethodChannel', {"channelName": channelName});
+    if(isSuccess) {
+      let channel = MethodChannel(channelName);
+      channel.setMethodCallHandler(handler);
+      return channel
+    }
+  }
+  
+
+  Future<dynamic> callFlutterMethod(String channelName, String method, dynamic args) async {
+    return await _channel
+        .invokeMethod('callFlutterMethod', {"channelName": channelName, "method": method, "args": args});
+  }
+
 
   Future<bool> startRecordScreen(String name) async {
     final bool start = await _channel

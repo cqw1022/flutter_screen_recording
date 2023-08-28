@@ -30,6 +30,8 @@ public class SwiftFlutterScreenRecordingPlugin: RPBroadcastSampleHandler, Flutte
     var mmwormhole: MMWormhole?
     var requestNotificationName: String?
     var responseNotificationName: String?
+    var callFlutterChannels: [String:FlutterMethodChannel] = [:]
+    var registrar: FlutterPluginRegistrar?
     
     static var instance:SwiftFlutterScreenRecordingPlugin?;
     public static func getInstance() -> SwiftFlutterScreenRecordingPlugin {
@@ -39,6 +41,8 @@ public class SwiftFlutterScreenRecordingPlugin: RPBroadcastSampleHandler, Flutte
     public static func register(with registrar: FlutterPluginRegistrar) {
         let channel = FlutterMethodChannel(name: "flutter_screen_recording", binaryMessenger: registrar.messenger())
         instance = SwiftFlutterScreenRecordingPlugin()
+        instance!.registrar = registrar
+//        instance?.callFlutterChannel = FlutterMethodChannel(name: "flutter_screen_recording_callback", binaryMessenger: registrar.messenger())
         registrar.addMethodCallDelegate(instance!, channel: channel)
     }
 
@@ -101,10 +105,19 @@ public class SwiftFlutterScreenRecordingPlugin: RPBroadcastSampleHandler, Flutte
         } else if (call.method == "postReplayKitBroadcast") {
             let args = call.arguments as? Dictionary<String, Any>
             var notificationArgs = (args?["args"] as? Dictionary<String, Any>)!
+            var cmd = (notificationArgs["cmd"] as? String)!
             // let resultId = (notificationArgs["resultId"] as? Int)!
-            postReplayKitBroadcastResultId = postReplayKitBroadcastResultId + 1;
-            notificationArgs["resultId"] = postReplayKitBroadcastResultId;
-            flutterResults[postReplayKitBroadcastResultId] = result
+            if cmd == "requestNextImage" {
+                
+                notificationArgs["resultId"] = -2;
+                myResult = result
+            } else {
+                
+                postReplayKitBroadcastResultId = postReplayKitBroadcastResultId + 1;
+                notificationArgs["resultId"] = postReplayKitBroadcastResultId;
+                flutterResults[postReplayKitBroadcastResultId] = result
+            }
+            
             self.mmwormhole?.passMessageObject(notificationArgs as NSCoding, identifier: self.requestNotificationName!)
 //            CFNotificationCenterPostNotification(CFNotificationCenterGetDarwinNotifyCenter(), CFNotificationName.init((args?["requestNotificationName"] as? String)! as CFString), nil, notificationArgs as CFDictionary, true);
         } else if (call.method == "initBroadcastConfig") {
@@ -116,6 +129,13 @@ public class SwiftFlutterScreenRecordingPlugin: RPBroadcastSampleHandler, Flutte
             self.mmwormhole?.listenForMessage(withIdentifier: (args?["responseNotificationName"] as? String)!, listener: { (messageObject) -> Void in
                 if let message: [String:Any] = messageObject as? [String:Any] {
                     if let resultId = message["resultId"] as? Int {
+                        if resultId == -2 {
+                            let data: Data = (message["resultArgs"] as? Data)!
+                            print(data.count)
+                            self.myResult?(data)
+                            self.myResult = nil
+                            return
+                        }
                         if resultId == -1 {
                             print(message["msg"]!)
                             return
@@ -145,6 +165,20 @@ public class SwiftFlutterScreenRecordingPlugin: RPBroadcastSampleHandler, Flutte
                 result(true)
             } else {
                 result(false)
+            }
+        }
+        else if (call.method == "addFlutterMethodChannel") {
+            let args = call.arguments as? Dictionary<String, Any>
+            let channelName = args!["channelName"] as? String
+            callFlutterChannels[channelName!] = FlutterMethodChannel(name: channelName!, binaryMessenger: registrar!.messenger())
+        }
+        else if (call.method == "callFlutterMethod") {
+            let args = call.arguments as? Dictionary<String, Any>
+            let channelName = args!["channelName"] as? String
+            let method = args!["method"] as? String
+            let call_args = args!["args"]
+            callFlutterChannels[channelName!]?.invokeMethod(method!, arguments: call_args){ (resultFromCb) in
+                result(resultFromCb)
             }
         }
         else {
