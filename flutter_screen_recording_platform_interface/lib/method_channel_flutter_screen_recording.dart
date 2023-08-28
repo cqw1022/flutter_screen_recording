@@ -23,8 +23,8 @@ class MethodChannelFlutterScreenRecording
   }
   
 
-  Future<dynamic> callFlutterMethod(String channelName, String method, dynamic args) async {
-    return await _channel
+  Future<dynamic> callFlutterMethod(MethodChannel channel, String channelName, String method, dynamic args) async {
+    return await channel
         .invokeMethod('callFlutterMethod', {"channelName": channelName, "method": method, "args": args});
   }
 

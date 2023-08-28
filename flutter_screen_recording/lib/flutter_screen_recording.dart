@@ -3,6 +3,7 @@ import 'package:flutter_foreground_task/flutter_foreground_task.dart';
 import 'package:flutter_screen_recording_platform_interface/flutter_screen_recording_platform_interface.dart';
 // import 'flutter_screen_recording_platform_interface/flutter_screen_recording_platform_interface.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter/services.dart';
 import 'dart:async';
 import 'dart:io';
 
@@ -18,11 +19,11 @@ class FlutterScreenRecording {
   }
   
 
-  static Future<dynamic> callFlutterMethod(String channelName, String method, dynamic args, {String? titleNotification, String? messageNotification}) async {
+  static Future<dynamic> callFlutterMethod(MethodChannel channel, String channelName, String method, dynamic args, {String? titleNotification, String? messageNotification}) async {
     titleNotification ??= "";
     messageNotification ??= "";
     await _maybeStartFGS(titleNotification, messageNotification);
-    return await FlutterScreenRecordingPlatform.instance.callFlutterMethod(channelName, method, args);
+    return await FlutterScreenRecordingPlatform.instance.callFlutterMethod(channel, channelName, method, args);
   }
 
   static Future<bool> startRecordScreen(String name, {String? titleNotification, String? messageNotification}) async{
