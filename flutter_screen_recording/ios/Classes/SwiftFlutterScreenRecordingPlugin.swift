@@ -4,6 +4,8 @@ import ReplayKit
 import Photos
 import Foundation
 import MMWormhole
+import MetalKit
+import CoreVideo
 
 public class SwiftFlutterScreenRecordingPlugin: RPBroadcastSampleHandler, FlutterPlugin, RPBroadcastControllerDelegate {
     
@@ -32,6 +34,8 @@ public class SwiftFlutterScreenRecordingPlugin: RPBroadcastSampleHandler, Flutte
     var responseNotificationName: String?
     var callFlutterChannels: [String:FlutterMethodChannel] = [:]
     var registrar: FlutterPluginRegistrar?
+    static var device: MTLDevice? = MTLCreateSystemDefaultDevice()
+    static var commandQueue: MTLCommandQueue?
     
     static var instance:SwiftFlutterScreenRecordingPlugin?;
     public static func getInstance() -> SwiftFlutterScreenRecordingPlugin {
@@ -42,6 +46,8 @@ public class SwiftFlutterScreenRecordingPlugin: RPBroadcastSampleHandler, Flutte
         let channel = FlutterMethodChannel(name: "flutter_screen_recording", binaryMessenger: registrar.messenger())
         instance = SwiftFlutterScreenRecordingPlugin()
         instance!.registrar = registrar
+//        instance!.device = MTLCreateSystemDefaultDevice()
+        commandQueue = device?.makeCommandQueue()
 //        instance?.callFlutterChannel = FlutterMethodChannel(name: "flutter_screen_recording_callback", binaryMessenger: registrar.messenger())
         registrar.addMethodCallDelegate(instance!, channel: channel)
     }
@@ -138,16 +144,29 @@ public class SwiftFlutterScreenRecordingPlugin: RPBroadcastSampleHandler, Flutte
                         if resultId == -2 {
                             if let resultcb = SwiftFlutterScreenRecordingPlugin.instance?.flutterResults[resultId] {
                                 SwiftFlutterScreenRecordingPlugin.instance?.flutterResults.removeValue(forKey: resultId)
-                                var data: Data = (message["data"] as? Data)!
-                                if(data.count > 0) {
-                                    
+                                if let isGetBaseInfo = message["isGetBaseInfo"] as? Int {
+                                    resultcb(message)
+                                    return
+                                }
+                                var data: Data? = (message["data"] as? Data)
+                                if(data==nil) {
+                                    resultcb(nil)
+                                    return
+                                }
+                                if(data!.count > 0) {
+
 //                                    print(data.count)
                                     let osType: OSType = (message["osType"] as? OSType)!
                                     let bytesPerRow: Int = (message["bytesPerRow"] as? Int)!
                                     let width: Int = (message["width"] as? Int)!
                                     let height: Int = (message["height"] as? Int)!
-//                                    print("\(width) \(height) \(width * height * 4) \(osType)")
-
+//                                    print("11@@@@ \(width) \(height) \(width * height * 4) \(osType) \(data!.count)")
+//
+//                                    let retData:Data? = self.Data2pixelBRGA(data: &data!, width: width, height: height, bytesPerRow: bytesPerRow)
+//                                    resultcb(retData)
+//                                    return
+////
+                                    
                                     // 创建 CVPixelBuffer 的属性字典
                                     let options: [String: Any] = [
                                         kCVPixelBufferCGImageCompatibilityKey as String: true,
@@ -172,7 +191,7 @@ public class SwiftFlutterScreenRecordingPlugin: RPBroadcastSampleHandler, Flutte
                                         // 获取像素缓冲区的基地址
                                         if let baseAddress = CVPixelBufferGetBaseAddress(pixelBuffer) {
                                             // 将 Data 中的字节数据复制到像素缓冲区中
-                                            data.copyBytes(to: baseAddress.bindMemory(to: UInt8.self, capacity: bytesPerRow * height), count: data.count)
+                                            data!.copyBytes(to: baseAddress.bindMemory(to: UInt8.self, capacity: bytesPerRow * height), count: data!.count)
 
                                             // 解锁像素缓冲区
                                             CVPixelBufferUnlockBaseAddress(pixelBuffer, .readOnly)
@@ -180,47 +199,31 @@ public class SwiftFlutterScreenRecordingPlugin: RPBroadcastSampleHandler, Flutte
                                             // 现在 pixelBuffer 包含了从 Data 创建的图像数据
                                         }
                                     }
-                                    if let pixelBuffer1 = pixelBuffer {
-                                        let ciImage = CIImage(cvPixelBuffer: pixelBuffer1)
-                                        let context = CIContext(options: nil)
-                                        let cgImage = context.createCGImage(ciImage, from: ciImage.extent)
-                                        let data:Data = self.CGImageRef2pixelBRGA(imageRef: cgImage!)
-                                        resultcb(data)
+                                    data = nil
+                                    if (pixelBuffer==nil) {
+                                        resultcb(nil)
+                                        return
                                     }
                                     
-
-//                                    let unsafeMutableRawPointer = data.withUnsafeMutableBytes { (ptr: UnsafeMutableRawBufferPointer) -> UnsafeMutableRawPointer in
-//
-//                                            return ptr.baseAddress!
-//                                        }
-//
-//                                    var pixelBuffer: CVPixelBuffer?
-//                                    let status = CVPixelBufferCreateWithBytes(kCFAllocatorDefault,
-//                                                                              width,
-//                                                                              height,
-//                                                                              osType,
-//                                                                              unsafeMutableRawPointer,
-//                                                                              width * 4,
-//                                                                              nil,
-//                                                                              nil,
-//                                                                              options as CFDictionary,
-//                                                                              &pixelBuffer)
-//
-//                                    if status == kCVReturnSuccess, let pixelBuffer = pixelBuffer {
-//                                        // 现在 pixelBuffer 包含了从 UnsafeMutableRawPointer 创建的图像数据
-//                                        let ciImage = CIImage(cvPixelBuffer: pixelBuffer)
-//                                        let context = CIContext(options: nil)
-//                                        let cgImage = context.createCGImage(ciImage, from: ciImage.extent)
-//                                        let data:Data = self.CGImageRef2pixelBRGA(imageRef: cgImage!)
-//                                        resultcb(data)
-//                                    }
-                                    
-                                    
-//                                    print(osType)
+                                    let ciImage = CIImage(cvPixelBuffer: pixelBuffer!)
+                                    let context = CIContext(options: nil)
+                                    var cgImage = context.createCGImage(ciImage, from: ciImage.extent)
+                                    var outData:Data? = self.CGImageRef2pixelBRGA(imageRef: cgImage!)
+                                    if(outData == nil) {
+                                        resultcb(nil)
+                                        pixelBuffer = nil
+                                        outData = nil
+                                        cgImage = nil
+                                        return
+                                    }
+                                    resultcb(outData)
+                                    pixelBuffer = nil
+                                    outData = nil
+                                    cgImage = nil
                                     return
-                                    
+
                                 }
-                                resultcb(data)
+                                resultcb(nil)
                             }
                             return
                         }
@@ -333,23 +336,119 @@ public class SwiftFlutterScreenRecordingPlugin: RPBroadcastSampleHandler, Flutte
 //            return cgImage
         }
 
-    func CGImageRef2pixelBRGA(imageRef: CGImage) -> Data {
-        let width = imageRef.width
-        let height = imageRef.height
-        let bytesPerPixel = 4;
-        let bytesPerRow = bytesPerPixel * width;
-        let bitsPerComponent = 8;
-        let imageBytes = UnsafeMutableRawPointer.allocate(byteCount: bytesPerRow * height, alignment: MemoryLayout<UInt8>.alignment)
+    func Data2pixelBRGA(data: inout Data, width: Int, height: Int, bytesPerRow: Int) -> Data? {
+        
+        let unsafeMutableRawPointer: UnsafeMutableRawPointer? = data.withUnsafeMutableBytes { (ptr: UnsafeMutableRawBufferPointer) -> UnsafeMutableRawPointer in
+            return ptr.baseAddress!
+        }
+        
+        if (unsafeMutableRawPointer==nil) {
+            return nil
+        }
+
+        
+        // Create a context to draw into
         let colorSpace = CGColorSpaceCreateDeviceRGB()
-//        var context = CGContext(data: imageBytes, width: width, height: height, bitsPerComponent: bitsPerComponent, bytesPerRow: bytesPerRow, space: colorSpace, bitmapInfo: CGBitmapInfo.byteOrder32Little.rawValue|CGImageAlphaInfo.premultipliedLast.rawValue)
-        var context = CGContext(data: imageBytes, width: width, height: height, bitsPerComponent: bitsPerComponent, bytesPerRow: bytesPerRow, space: colorSpace, bitmapInfo: CGBitmapInfo.byteOrder32Big.rawValue|CGImageAlphaInfo.premultipliedFirst.rawValue)
-        let rect = CGRect(x: 0, y: 0, width: width, height: height)
-        context?.draw(imageRef, in:rect)
-//        CGColorSpaceRelease(colorSpace)
-//        CGContextRelease(context)
-//        CGImageRelease(imageRef)
-        let data = Data(bytes: imageBytes, count:bytesPerRow * height)
+        var bitmapInfo: UInt32 = CGBitmapInfo.byteOrder32Big.rawValue|CGImageAlphaInfo.premultipliedFirst.rawValue
+//        Cannot convert value of type 'UnsafeMutableRawBufferPointer' to expected argument type 'UnsafeMutableRawPointer?'
+        let context = CGContext(data: unsafeMutableRawPointer!,
+                                width: width,
+                                height: height,
+                                bitsPerComponent: 8,
+                                bytesPerRow: bytesPerRow,
+                                space: colorSpace,
+                                bitmapInfo: bitmapInfo)
+
+        // Draw the pixel buffer into the context
+        guard let cgImage = context?.makeImage() else {
+            return nil
+        }
+
+
+    //                                    // Get the RGBA bytes from the CGImage
+    //                                    let widthBytes = width * 4 // 4 bytes per RGBA pixel
+    //                                    let totalBytes = widthBytes * height
+    //                                    var pixelData = [UInt8](repeating: 0, count: totalBytes)
+
+        guard let dataProvider = cgImage.dataProvider else {
+            return nil
+        }
+
+        guard let imageData = dataProvider.data else {
+            return nil
+        }
+
+        guard let imageBytes = CFDataGetBytePtr(imageData) else {
+            return nil
+        }
+        
+        let data = Data(bytes: imageBytes, count:4 * width)
         return data
+    }
+//
+//    func pix2brga(pixelBuffer: CVPixelBuffer) -> Data {
+//        if(SwiftFlutterScreenRecordingPlugin.device==nil) {
+//            return Data()
+//        }
+//        // 创建Metal纹理
+//        let textureLoader = MTKTextureLoader(device: SwiftFlutterScreenRecordingPlugin.device!)
+//        let texture = try? textureLoader.newTexture(pixelBuffer: pixelBuffer, options: nil)
+//
+//        if let texture = texture {
+//            let width = texture.width
+//            let height = texture.height
+//
+//            // 创建RGBA格式的字节数组
+//            let bufferSize = width * height * 4
+//            var rgbaBuffer = [UInt8](repeating: 0, count: bufferSize)
+//
+//            // 使用Metal将纹理数据拷贝到RGBA字节数组
+//            let bytesPerRow = 4 * width
+//            let region = MTLRegionMake2D(0, 0, width, height)
+//            texture.getBytes(&rgbaBuffer, bytesPerRow: bytesPerRow, from: region, mipmapLevel: 0)
+//
+//            // 现在，rgbaBuffer包含了RGBA格式的像素数据，您可以使用它进行进一步处理或传输。
+//        }
+//    }
+//
+    func CGImageRef2pixelBRGA(imageRef: CGImage) -> Data {
+//        let width = imageRef.width
+//        let height = imageRef.height
+        
+        let textureLoader = MTKTextureLoader(device: SwiftFlutterScreenRecordingPlugin.device!)
+        let texture = try? textureLoader.newTexture(cgImage: imageRef, options: nil)
+            if let texture = texture {
+                let width = texture.width
+                let height = texture.height
+    
+                // 创建RGBA格式的字节数组
+                let bufferSize = width * height * 4
+                var rgbaBuffer = [UInt8](repeating: 0, count: bufferSize)
+    
+                // 使用Metal将纹理数据拷贝到RGBA字节数组
+                let bytesPerRow = 4 * width
+                let region = MTLRegionMake2D(0, 0, width, height)
+                texture.getBytes(&rgbaBuffer, bytesPerRow: bytesPerRow, from: region, mipmapLevel: 0)
+
+                let data = Data(bytes: rgbaBuffer, count:bytesPerRow * height)
+                return data
+                // 现在，rgbaBuffer包含了RGBA格式的像素数据，您可以使用它进行进一步处理或传输。
+            }
+        return Data()
+    
+//        let bytesPerPixel = 4;
+//        let bytesPerRow = bytesPerPixel * width;
+//        let bitsPerComponent = 8;
+//        var imageBytes = UnsafeMutableRawPointer.allocate(byteCount: bytesPerRow * height, alignment: MemoryLayout<UInt8>.alignment)
+//        let colorSpace = CGColorSpaceCreateDeviceRGB()
+////        var context = CGContext(data: imageBytes, width: width, height: height, bitsPerComponent: bitsPerComponent, bytesPerRow: bytesPerRow, space: colorSpace, bitmapInfo: CGBitmapInfo.byteOrder32Little.rawValue|CGImageAlphaInfo.premultipliedLast.rawValue)
+//        var context = CGContext(data: imageBytes, width: width, height: height, bitsPerComponent: bitsPerComponent, bytesPerRow: bytesPerRow, space: colorSpace, bitmapInfo: CGBitmapInfo.byteOrder32Big.rawValue|CGImageAlphaInfo.premultipliedFirst.rawValue)
+//        let rect = CGRect(x: 0, y: 0, width: width, height: height)
+//        context?.draw(imageRef, in:rect)
+////        context = nil
+////        return Data()
+//        let data = Data(bytes: imageBytes, count:bytesPerRow * height)
+//        return data
     }
     @objc func startCaptureScreen() {
         if #available(iOS 11.0, *) {
